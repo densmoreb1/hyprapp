@@ -72,10 +72,10 @@ def change_exercise(exercise_name, exercise_id):
     query = '''
             update mesos m
             set m.exercise_id = %s, m.weight = NULl, m.reps = NULL, m.completed = 0
-            where m.day_id = %s and m.week_id = %s and m.meso_id = %s and m.exercise_id = %s and user_id = %s
+            where m.day_id = %s and m.meso_id = %s and m.exercise_id = %s and user_id = %s
             '''
     if st.button('Confirm'):
-        conn.execute_query(query, (updated_exercise_id, day_id, week_id, meso_id, exercise_id, user_id))
+        conn.execute_query(query, (updated_exercise_id, day_id, meso_id, exercise_id, user_id))
         st.rerun()
 
 
