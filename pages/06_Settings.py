@@ -1,6 +1,8 @@
 from helpers.connection import MySQLDatabase
 from helpers.login import login
 import streamlit as st
+import yaml
+import re
 
 # Login
 if st.session_state.get("authentication_status"):
@@ -11,6 +13,14 @@ else:
     login()
 
 conn = MySQLDatabase()
+
+
+# Get the current user
+if 'username' in st.session_state and st.session_state['username'] is not None:
+    user_name = st.session_state['username']
+    user_id = conn.execute_query('select id from users where name = %s', (user_name,))[0][0]
+else:
+    st.stop()
 
 
 def add_user():
@@ -36,6 +46,19 @@ def add_user():
     else:
         st.stop()
 
+
+if st.session_state['authentication_status']:
+    authenticator = st.session_state.get("authenticator")
+    try:
+        if authenticator.reset_password(st.session_state['username']):
+            st.success('Password modified successfully')
+
+            config = st.session_state['config']
+            with open('.streamlit/config.yml', 'w') as file:
+                yaml.dump(config, file, default_flow_style=False)
+
+    except Exception as e:
+        st.error(e)
 
 if 'admin' in st.session_state['roles']:
     add_user()

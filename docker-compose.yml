@@ -30,7 +30,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./helpers/tables.sql:/docker-entrypoint-initdb.d/init.sql  # Mount the init script
     ports:
-      - "3601:3601"
+      - "3601"
 
 volumes:
   mysql_data:

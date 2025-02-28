@@ -1,27 +1,27 @@
 cookie:
   expiry_days: 30
-  key: some_signature_key # Must be a string
+  key: some_signature_key
   name: some_cookie_name
 credentials:
   usernames:
     brandon:
       email: brandon@gmail.com
-      failed_login_attempts: 0 # Will be managed automatically
+      failed_login_attempts: 0
       first_name: brandon
       last_name: den
-      logged_in: False # Will be managed automatically
-      password: abc # Will be hashed automatically
-      roles: # Optional
+      logged_in: true
+      password: $2b$12$gg1wc6akOIrlyfKM/CfG.uQJMTBVI56pvJzWfLJelnjuPQhW9U9ei
+      roles:
       - admin
       - editor
       - viewer
-    trevor:
-      email: trevor@gmail.com
+    haden:
+      email: haden@gmail.com
       failed_login_attempts: 0
-      first_name: trevor
-      last_name: ch
-      logged_in: False
-      password: abc
+      first_name: haden
+      last_name: de
+      logged_in: false
+      password: $2b$12$mpwVuhRoU8.xyj5yM/3MXe/jqCMS2AojqNoWbUWNNgfhwSA.0eWXe
       roles:
       - viewer
     ivy:
@@ -29,7 +29,16 @@ credentials:
       failed_login_attempts: 0
       first_name: ivy
       last_name: de
-      logged_in: False
-      password: abc
+      logged_in: false
+      password: $2b$12$O7e0z5hw39Ugxk.qw4pBgelLumc0ax1Dh7l8Bh8VtnRjfLlQE6YBK
+      roles:
+      - viewer
+    trevor:
+      email: trevor@gmail.com
+      failed_login_attempts: 0
+      first_name: trevor
+      last_name: ch
+      logged_in: false
+      password: $2b$12$otrzyfwDQZajkhNJ3TjrRuh.JFIwKHDmDH.69.jfXsFayp.xxX9Um
       roles:
       - viewer
