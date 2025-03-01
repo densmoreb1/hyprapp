@@ -28,7 +28,7 @@ sql = conn.execute_query(query)
 groups = [u[0] for u in sql]
 
 name = st.text_input('Exercise Name').lower()
-group = st.selectbox('Muscle Group', groups)
+group = st.selectbox('Muscle Group', groups, index=None)
 result = st.button('Create Exercise')
 
 query = 'select name from exercises'

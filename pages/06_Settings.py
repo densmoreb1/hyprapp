@@ -2,7 +2,6 @@ from helpers.connection import MySQLDatabase
 from helpers.login import login
 import streamlit as st
 import yaml
-import re
 
 # Login
 if st.session_state.get("authentication_status"):
@@ -24,27 +23,32 @@ else:
 
 
 def add_user():
-    st.write('## Add a User')
-    user = st.text_input('Username').lower()
+    try:
+        email, register_user, register_name = authenticator.register_user()
+        config = st.session_state['config']
+        with open('.streamlit/config.yml', 'w') as file:
+            yaml.dump(config, file, default_flow_style=False)
 
-    query = 'select name from users'
-    sql = conn.execute_query(query)
-    names = [u[0] for u in sql]
+    except Exception as e:
+        st.error(e)
+        st.stop()
 
-    if user != '':
-        if user not in names:
+    if register_user is not None:
+        query = 'select name from users'
+        sql = conn.execute_query(query)
+        names = [u[0] for u in sql]
+
+        if register_user not in names:
             query = 'insert into users (name) values (%s)'
-            conn.execute_query(query, (user,))
+            conn.execute_query(query, (register_user,))
 
             query = 'select id from users where name = %s'
-            id = conn.execute_query(query, (user,))[0][0]
-            st.toast(f'User "{user}" was created with id of {id}')
+            id = conn.execute_query(query, (register_user,))[0][0]
+            st.toast(f'User "{register_user}" was created with id of {id}')
         else:
             query = 'select id from users where name = %s'
-            id = conn.execute_query(query, (user,))[0][0]
-            st.toast(f'User "{user}" already exists with id of {id}')
-    else:
-        st.stop()
+            id = conn.execute_query(query, (register_user,))[0][0]
+            st.toast(f'User "{register_user}" already exists with id of {id}')
 
 
 if st.session_state['authentication_status']:
@@ -59,6 +63,7 @@ if st.session_state['authentication_status']:
 
     except Exception as e:
         st.error(e)
+
 
 if 'admin' in st.session_state['roles']:
     add_user()
