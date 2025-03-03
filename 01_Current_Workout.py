@@ -22,16 +22,15 @@ else:
 
 
 # Get Meso for the selected User
-query = 'select distinct name, meso_id from mesos where user_id = %s order by meso_id desc'
+query = 'select distinct name, meso_id from mesos where user_id = %s and completed = 0 order by meso_id desc'
 sql = conn.execute_query(query, (user_id,))
 mesos = [g[0] for g in sql]
 
 if len(mesos) > 0:
     meso_name = st.selectbox('Mesos', mesos)
-    meso_id = conn.execute_query('select meso_id from mesos where name = %s', (meso_name,))[0][0]
+    meso_id = conn.execute_query('select meso_id from mesos where name = %s and user_id = %s', (meso_name, user_id))[0][0]
 else:
-    st.write('Looks you have not created a meso yet')
-    if st.button('Create a Meso'):
+    if st.button('Create a new meso here'):
         st.switch_page('pages/02_Create_Meso.py')
     st.stop()
 
@@ -57,6 +56,8 @@ query = '''
         '''
 exercises = conn.execute_query(query, (day_id, week_id, meso_id, user_id))
 
+
+# Start
 st.write(f'## Week {week_id + 1} Day {day_id + 1}')
 
 
@@ -151,9 +152,9 @@ for i in range(len(exercises)):
         # if last workout exists
         if len(previous) > 0:
             # if set exists
-            if i < len(previous):
-                prev_reps = previous[i][1]
-                prev_weight = previous[i][2]
+            if i < len(previous) and previous[i][1] is not None:
+                prev_reps = previous[i][1] + 1
+                prev_weight = float(previous[i][2])
 
         set_id = workout[i][0]
         reps = workout[i][1]
@@ -172,7 +173,7 @@ for i in range(len(exercises)):
                 weight = st.number_input('Weight',
                                          label_visibility='collapsed',
                                          placeholder=f'Weight: {prev_weight}',
-                                         value=None,
+                                         value=prev_weight,
                                          key=f'weight{exercise_name, set_id}',
                                          step=.5)
             else:
@@ -183,7 +184,7 @@ for i in range(len(exercises)):
                 reps = st.number_input('Reps',
                                        label_visibility='collapsed',
                                        placeholder=f'Reps: {prev_reps}',
-                                       value=None,
+                                       value=prev_reps,
                                        key=f'reps{exercise_name, set_id}',
                                        step=1)
             else:
