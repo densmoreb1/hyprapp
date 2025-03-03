@@ -73,10 +73,10 @@ def change_exercise(exercise_name, exercise_id):
     query = '''
             update mesos m
             set m.exercise_id = %s, m.weight = NULl, m.reps = NULL, m.completed = 0
-            where m.day_id = %s and m.meso_id = %s and m.exercise_id = %s and user_id = %s
+            where m.day_id = %s and m.meso_id = %s and m.exercise_id = %s and user_id = %s and week_id >= %s
             '''
     if st.button('Confirm'):
-        conn.execute_query(query, (updated_exercise_id, day_id, meso_id, exercise_id, user_id))
+        conn.execute_query(query, (updated_exercise_id, day_id, meso_id, exercise_id, user_id, week_id))
         st.rerun()
 
 
@@ -94,10 +94,10 @@ def exercise_history(exercise_name, exercise_id):
         st.markdown(f'## <ins>{history_meso}</ins>', unsafe_allow_html=True)
 
         history = '''
-                select distinct week_id, day_id, date_completed
+                select distinct week_id, day_id
                 from mesos
                 where exercise_id = %s and user_id = %s and completed = 1 and name = %s
-                order by date_completed desc
+                order by week_id desc
                 '''
         history_sql = conn.execute_query(history, (exercise_id, user_id, history_meso))
 
@@ -106,10 +106,10 @@ def exercise_history(exercise_name, exercise_id):
             history_day = history_sql[j][1]
             st.write(f'### Week {history_week + 1} Day {history_day + 1}')
             history_reps = '''
-                            select reps, weight
+                            select reps, weight, set_id
                             from mesos
                             where exercise_id = %s and user_id = %s and completed = 1 and name = %s and week_id = %s and day_id = %s
-                            order by date_completed desc
+                            order by set_id
                             '''
             history_reps_sql = conn.execute_query(history_reps, (exercise_id, user_id, history_meso, history_week, history_day))
             for h in range(len(history_reps_sql)):
@@ -118,7 +118,11 @@ def exercise_history(exercise_name, exercise_id):
                 st.write(f'Weight: {weight} Reps: {reps}')
 
 
+completed_workout = {}
+completed_boxes = []
+max_sets = 0
 # Main Page
+# Exercise loop
 for i in range(len(exercises)):
     exercise_name = exercises[i][0]
     exercise_id = exercises[i][1]
@@ -146,6 +150,8 @@ for i in range(len(exercises)):
             if st.button('History', key=f'history{exercise_name}'):
                 exercise_history(exercise_name, exercise_id)
 
+    completed_workout[exercise_name] = []
+    # Set loop
     for i in range(len(workout)):
         prev_reps = None
         prev_weight = None
@@ -163,7 +169,6 @@ for i in range(len(exercises)):
         order_id = workout[i][5]
         completed = workout[i][6]
 
-        completed_boxes = []
         cols = st.columns(4)
         with cols[0]:
             st.write(f'Set: {set_id + 1}')
@@ -196,13 +201,9 @@ for i in range(len(exercises)):
 
                 if box:
                     completed_boxes.append(box)
-                    query = '''
-                            update mesos
-                            set reps = %s, weight = %s, completed = 1, date_completed = now()
-                            where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
-                            '''
-                    conn.execute_query(query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id))
+                    completed_workout[exercise_name].append([meso_id, meso_name, user_id, set_id, reps, weight, order_id, exercise_id, day_id, week_id])
 
+        max_sets += 1
     # Formatting with columns
     set_cols = st.columns([2, 15])
     with set_cols[0]:
@@ -236,15 +237,30 @@ for i in range(len(exercises)):
 # Complete workout - navigate to previous workout page
 st.write('###')
 
-
-@st.dialog("Workout Completed")
-def complete_workout():
-    if st.button("View Past Workouts"):
-        st.switch_page('pages/03_Previous_Workouts.py')
-
-
 if st.button('Complete Workout'):
-    if all(completed_boxes):
-        complete_workout()
+    if len(completed_boxes) == max_sets:
+        # Update each set
+        # completed_workout[exercise_name].append([meso_id, meso_name, user_id, set_id, reps, weight, order_id, exercise_id, day_id, week_id])
+        for name, value in completed_workout.items():
+            for each_set in value:
+                meso_id = each_set[0]
+                meso_name = each_set[1]
+                user_id = each_set[2]
+                set_id = each_set[3]
+                reps = each_set[4]
+                weight = each_set[5]
+                order_id = each_set[6]
+                exercise_id = each_set[7]
+                day_id = each_set[8]
+                week_id = each_set[9]
+
+                query = '''
+                        update mesos
+                        set reps = %s, weight = %s, completed = 1, date_completed = now()
+                        where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
+                        '''
+                conn.execute_query(query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id))
+
+        st.switch_page('pages/03_Previous_Workouts.py')
     else:
         st.toast('Complete all sets', icon="⚠️")
