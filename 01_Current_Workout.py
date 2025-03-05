@@ -61,6 +61,34 @@ exercises = conn.execute_query(query, (day_id, week_id, meso_id, user_id))
 st.write(f'## Week {week_id + 1} Day {day_id + 1}')
 
 
+@st.dialog('Add exercise')
+def add_exercise():
+
+    query = 'select distinct muscle_group from exercises'
+    sql = conn.execute_query(query)
+    groups = [u[0] for u in sql]
+
+    group = st.selectbox('Muscle Group', groups, index=None)
+
+    sql = conn.execute_query('select name from exercises where muscle_group = %s', (group,))
+    exercise_selection = [e[0] for e in sql]
+    exercise = st.selectbox('Exercise', exercise_selection, index=None, placeholder='Exercise', label_visibility='collapsed')
+    if exercise:
+        exercise_id = conn.execute_query('select id from exercises where name = %s', (exercise,))[0][0]
+
+    query = 'select max(order_id) from mesos where user_id = %s and meso_id = %s and day_id = %s and week_id = %s'
+    max_order_id = conn.execute_query(query, (user_id, meso_id, day_id, week_id))[0][0]
+
+    if st.button('Confirm'):
+        insert_query = '''
+                    insert into mesos
+                    (meso_id, name, user_id, completed, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
+                    (%s,        %s,      %s,        %s,     %s,   %s,     %s,       %s,          %s,     %s,      %s, now())
+                    '''
+        conn.execute_query(insert_query, (meso_id, meso_name, user_id, 0, 0, None, None, max_order_id + 1, exercise_id, day_id, week_id,))
+        st.rerun()
+
+
 @st.dialog('Change exercise')
 def change_exercise(exercise_name, exercise_id):
     group = conn.execute_query('select muscle_group from exercises where id = %s', (exercise_id,))[0][0]
@@ -72,7 +100,7 @@ def change_exercise(exercise_name, exercise_id):
 
     query = '''
             update mesos m
-            set m.exercise_id = %s, m.weight = NULl, m.reps = NULL, m.completed = 0
+            set m.exercise_id = %s, m.weight = NULL, m.reps = NULL, m.completed = 0
             where m.day_id = %s and m.meso_id = %s and m.exercise_id = %s and user_id = %s and week_id >= %s
             '''
     if st.button('Confirm'):
@@ -234,8 +262,11 @@ for i in range(len(exercises)):
         st.rerun()
 
 
+if st.button('Add Exercise'):
+    add_exercise()
+
 # Complete workout - navigate to previous workout page
-st.write('###')
+st.write('####')
 
 if st.button('Complete Workout'):
     if len(completed_boxes) == max_sets:
