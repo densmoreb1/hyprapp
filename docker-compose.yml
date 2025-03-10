@@ -1,11 +1,11 @@
 services:
   app:
-    hostname: hypertrophy-app
-    container_name: hypertrophy-app
     image: python:latest
+    container_name: hypertrophy-app
+    hostname: hypertrophy-app
     restart: unless-stopped
     ports:
-      - "8501:8501"  # Map Streamlit's default port
+      - 8501  # Map Streamlit's default port
     volumes:
       - .:/app
     working_dir: /app
@@ -13,7 +13,7 @@ services:
     environment:
       - MYSQL_HOST=mysql
       - MYSQL_USER=root
-      - MYSQL_PASSWORD=CHANGE
+      - MYSQL_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=fitness
     depends_on:
       - mysql
@@ -24,13 +24,24 @@ services:
     container_name: hypertrophy-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: CHANGE
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: fitness
     volumes:
       - mysql_data:/var/lib/mysql
       - ./helpers/tables.sql:/docker-entrypoint-initdb.d/init.sql  # Mount the init script
     ports:
-      - "3601"
+      - 3601
+
+  nginx:
+    image: nginx
+    hostname: hypertrophy-nginx
+    container_name: hypertrophy-nginx
+    restart: unless-stopped
+    volumes:
+        - ./helpers/nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+        - 80:80
+        - 443:443
 
 volumes:
   mysql_data:

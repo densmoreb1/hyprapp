@@ -15,6 +15,15 @@ credentials:
       - admin
       - editor
       - viewer
+    david:
+      email: david@gmail.com
+      failed_login_attempts: 0
+      first_name: david
+      last_name: c
+      logged_in: true
+      password: $2b$12$ZLY5rn4IhV.JndEAnfd0IeC9RJPiShxlM/03DX/mpX6BjkYP.IRL2
+      roles:
+      - viewer
     haden:
       email: haden@gmail.com
       failed_login_attempts: 0

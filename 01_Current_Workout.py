@@ -236,10 +236,7 @@ for i in range(len(exercises)):
     with set_cols[0]:
         add_set = st.button('Add set', key=f'add{exercise_name, set_id}')
     with set_cols[1]:
-        remove_set = None
-        # Don't remove last set
-        if set_id != 0:
-            remove_set = st.button('Remove set', key=f'remove{exercise_name, set_id}')
+        remove_set = st.button('Remove set', key=f'remove{exercise_name, set_id}')
 
     if remove_set:
         query = '''
