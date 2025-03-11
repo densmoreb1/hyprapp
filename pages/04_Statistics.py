@@ -15,20 +15,20 @@ conn = MySQLDatabase()
 
 
 # Get the current user
-if 'username' in st.session_state and st.session_state['username'] is not None:
-    user_name = st.session_state['username']
-    user_id = conn.execute_query('select id from users where name = %s', (user_name,))[0][0]
+if "username" in st.session_state and st.session_state["username"] is not None:
+    user_name = st.session_state["username"]
+    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[0][0]
 else:
     st.stop()
 
 
-st.write('# Statistics')
+st.write("# Statistics")
 
-groups_sql = conn.execute_query('select distinct muscle_group from exercises')
+groups_sql = conn.execute_query("select distinct muscle_group from exercises")
 muscle_groups = [g[0] for g in groups_sql]
-muscle_groups = st.multiselect('Muscle Groups', muscle_groups)
+muscle_groups = st.multiselect("Muscle Groups", muscle_groups)
 
-sets_query = '''
+sets_query = """
 select
     e.muscle_group,
     count(m.set_id) AS set_count,
@@ -40,14 +40,14 @@ inner join users u on m.user_id = u.id
 where m.completed = 1
     and u.id = %s
 group by e.muscle_group, m.meso_id, m.week_id
-'''
+"""
 
 sets_sql = conn.execute_query(sets_query, (user_id,))
 
 for muscle in muscle_groups:
     st.write(muscle.capitalize())
-    df = pd.DataFrame(sets_sql, columns=['muscle_group', 'set_count', 'week'])
-    df = df[df['muscle_group'] == muscle]
-    st.bar_chart(df, x='week', y='set_count')
+    df = pd.DataFrame(sets_sql, columns=["muscle_group", "set_count", "week"])
+    df = df[df["muscle_group"] == muscle]
+    st.bar_chart(df, x="week", y="set_count")
 
 # view volume of exercise over each workout

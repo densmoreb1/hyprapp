@@ -5,12 +5,7 @@ from mysql.connector import Error
 
 class MySQLDatabase:
     def __init__(self):
-        self.config = {
-            'user': 'root',
-            'password': os.environ['MYSQL_PASSWORD'],
-            'host': 'mysql',
-            'database': 'fitness'
-        }
+        self.config = {"user": "root", "password": os.environ["MYSQL_PASSWORD"], "host": "mysql", "database": "fitness"}
         self.connection = None
         self.cursor = None
 
@@ -40,7 +35,7 @@ class MySQLDatabase:
                 self.connection.commit()
                 return self.cursor.rowcount
         except Error as e:
-            return (f"Error executing query: {e}")
+            return f"Error executing query: {e}"
 
     def close(self):
         """Close the cursor and connection."""
