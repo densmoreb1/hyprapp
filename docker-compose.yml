@@ -9,7 +9,7 @@ services:
     volumes:
       - .:/app
     working_dir: /app
-    command: bash -c "pip install -r requirements.txt && streamlit run 01_Current_Workout.py --server.port=8501 --server.address=0.0.0.0"
+    command: bash -c "pip install -r requirements.txt && streamlit run 01_Current_Workout.py --logger.level=info 2>./server/streamlit/logs.txt"
     environment:
       - MYSQL_HOST=mysql
       - MYSQL_USER=root
@@ -38,7 +38,8 @@ services:
     container_name: hypertrophy-nginx
     restart: unless-stopped
     volumes:
-        - ./helpers/nginx/nginx.conf:/etc/nginx/nginx.conf
+        - ./server/nginx/nginx.conf:/etc/nginx/nginx.conf
+        - ./server/nginx/logs:/var/log/nginx
     ports:
         - 80:80
         - 443:443
