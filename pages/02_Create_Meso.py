@@ -99,7 +99,7 @@ else:
             st.write(f"### Day {i + 1}")
 
             query = """
-                    select exercise_id, order_id, reps, weight, e.name, e.muscle_group
+                    select distinct exercise_id, order_id, e.name, e.muscle_group
                     from mesos m
                     inner join exercises e on m.exercise_id = e.id
                     where meso_id = %s and user_id = %s and week_id = %s and day_id = %s
@@ -111,8 +111,8 @@ else:
             final_exercise_list = []
             for r in range(exercises_per):
                 prev_exercise_id = current_day[r][0]
-                prev_name = current_day[r][4]
-                prev_group = current_day[r][5]
+                prev_name = current_day[r][2]
+                prev_group = current_day[r][3]
 
                 if prev_group in muscle_groups:
                     index = muscle_groups.index(prev_group)

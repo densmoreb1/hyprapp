@@ -242,13 +242,16 @@ for i in range(len(exercises)):
     with set_cols[1]:
         remove_set = st.button("Remove set", key=f"remove{exercise_name, set_id}")
 
+    max_week_query = "select max(week_id) from mesos where meso_id = %s and user_id = %s"
+    max_week_id = conn.execute_query(max_week_query, (meso_id, user_id))[0][0]
     if remove_set:
         query = """
                 delete from mesos
                 where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
                 """
-        conn.execute_query(query, (set_id, day_id, week_id, exercise_id, meso_name, user_id))
-        conn.execute_query(query, (set_id, day_id, week_id + 1, exercise_id, meso_name, user_id))
+        for i in range(week_id, max_week_id + 1):
+            conn.execute_query(query, (set_id, day_id, i, exercise_id, meso_name, user_id))
+
         st.rerun()
 
     if add_set:
@@ -257,8 +260,9 @@ for i in range(len(exercises)):
                 (meso_id, name, user_id, completed, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
                 (%s,        %s,      %s,         0,     %s,    %s,    %s,       %s,          %s,     %s,      %s, now())
                 """
-        conn.execute_query(query, (meso_id, meso_name, user_id, set_id + 1, reps, weight, order_id, exercise_id, day_id, week_id))
-        conn.execute_query(query, (meso_id, meso_name, user_id, set_id + 1, reps, weight, order_id, exercise_id, day_id, week_id + 1))
+        for i in range(week_id, max_week_id + 1):
+            conn.execute_query(query, (meso_id, meso_name, user_id, set_id + 1, reps, weight, order_id, exercise_id, day_id, i))
+
         st.rerun()
 
 
