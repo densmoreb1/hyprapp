@@ -28,25 +28,33 @@ groups_sql = conn.execute_query("select distinct muscle_group from exercises")
 muscle_groups = [g[0] for g in groups_sql]
 muscle_groups = st.multiselect("Muscle Groups", muscle_groups)
 
-sets_query = """
-select
-    e.muscle_group,
-    count(m.set_id) AS set_count,
-    row_number() over (partition by e.muscle_group,
-                        m.meso_id order by m.week_id) AS week_rank
-from mesos m
-inner join exercises e on m.exercise_id = e.id
-inner join users u on m.user_id = u.id
-where m.completed = 1 and u.id = %s and m.weight is not NULL
-group by e.muscle_group, m.meso_id, m.week_id
-"""
+# Get Meso for the selected User
+query = "select distinct name, meso_id from mesos where user_id = %s and completed = 0 order by meso_id desc"
+sql = conn.execute_query(query, (user_id,))
+mesos = [g[0] for g in sql]
 
-sets_sql = conn.execute_query(sets_query, (user_id,))
+# Show set increase over each meso
+if len(muscle_groups) != 0:
+    for meso_name in mesos:
 
-for muscle in muscle_groups:
-    st.write(muscle.capitalize())
-    df = pd.DataFrame(sets_sql, columns=["muscle_group", "set_count", "week"])
-    df = df[df["muscle_group"] == muscle]
-    st.bar_chart(df, x="week", y="set_count")
+        st.write(f" ### {meso_name}")
 
-# view volume of exercise over each workout
+        for muscle in muscle_groups:
+            sets_query = """
+            select m.name, m.week_id + 1, e.muscle_group, count(m.set_id), m.meso_id
+            from mesos m
+            inner join exercises e on m.exercise_id = e.id
+            where user_id = %s and weight is not null and completed = 1 and m.name = %s and e.muscle_group = %s
+            group by m.name, m.week_id, e.muscle_group, m.meso_id
+            order by m.meso_id
+            """
+            sets_sql = conn.execute_query(sets_query, (user_id, meso_name, muscle))
+
+            if len(sets_sql) > 0:
+                st.write(muscle.capitalize())
+                df = pd.DataFrame(sets_sql, columns=["meso_name", "Week", "muscle_group", "Sets", "meso_id"])
+                df = df[df["muscle_group"] == muscle]
+                st.bar_chart(df, x="Week", y="Sets")
+            else:
+                st.write(muscle.capitalize())
+                st.write("None")
