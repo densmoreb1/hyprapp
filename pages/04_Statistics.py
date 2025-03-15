@@ -37,8 +37,7 @@ select
 from mesos m
 inner join exercises e on m.exercise_id = e.id
 inner join users u on m.user_id = u.id
-where m.completed = 1
-    and u.id = %s
+where m.completed = 1 and u.id = %s and m.weight is not NULL
 group by e.muscle_group, m.meso_id, m.week_id
 """
 
