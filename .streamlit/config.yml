@@ -8,12 +8,21 @@ credentials:
       email: brandon@gmail.com
       failed_login_attempts: 0
       first_name: brandon
-      last_name: den
+      last_name: d
       logged_in: true
       password: $2b$12$gg1wc6akOIrlyfKM/CfG.uQJMTBVI56pvJzWfLJelnjuPQhW9U9ei
       roles:
       - admin
       - editor
+      - viewer
+    brynlee:
+      email: brynlee@gmail.com
+      failed_login_attempts: 0
+      first_name: brynlee
+      last_name: n
+      logged_in: true
+      password: $2b$12$mxYjluZRe/dxH5VeAkcTaeZfqSeCGMw40sZv60ItQts.y19FAYGcS
+      roles:
       - viewer
     david:
       email: david@gmail.com
@@ -28,7 +37,7 @@ credentials:
       email: haden@gmail.com
       failed_login_attempts: 0
       first_name: haden
-      last_name: de
+      last_name: c
       logged_in: false
       password: $2b$12$mpwVuhRoU8.xyj5yM/3MXe/jqCMS2AojqNoWbUWNNgfhwSA.0eWXe
       roles:
@@ -37,7 +46,7 @@ credentials:
       email: ivy@gmail.com
       failed_login_attempts: 0
       first_name: ivy
-      last_name: de
+      last_name: d
       logged_in: false
       password: $2b$12$O7e0z5hw39Ugxk.qw4pBgelLumc0ax1Dh7l8Bh8VtnRjfLlQE6YBK
       roles:
@@ -46,7 +55,7 @@ credentials:
       email: trevor@gmail.com
       failed_login_attempts: 0
       first_name: trevor
-      last_name: ch
+      last_name: c
       logged_in: false
       password: $2b$12$otrzyfwDQZajkhNJ3TjrRuh.JFIwKHDmDH.69.jfXsFayp.xxX9Um
       roles:

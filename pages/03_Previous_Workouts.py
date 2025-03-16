@@ -37,8 +37,8 @@ else:
 
 
 # Get the completed week_ids
-query = "select distinct week_id from mesos where meso_id = %s and completed = 1 order by week_id desc"
-sql = conn.execute_query(query, (meso_id,))
+query = "select distinct week_id from mesos where meso_id = %s and user_id = %s and completed = 1 order by week_id desc"
+sql = conn.execute_query(query, (meso_id, user_id))
 weeks = [d[0] + 1 for d in sql]
 
 if len(weeks) > 0:

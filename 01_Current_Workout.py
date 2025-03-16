@@ -195,7 +195,21 @@ for i in range(len(exercises)):
 
         cols = st.columns(4)
         with cols[0]:
-            st.write(f"Set: {set_id + 1}")
+            text = ""
+            if completed == 1:
+                if prev_reps is not None:
+                    if reps is not None:
+                        prev_volume = prev_weight * prev_reps
+                        current_volume = weight * reps
+
+                        if current_volume >= prev_volume:
+                            text = ":dart:"
+                        else:
+                            text = ":arrow_lower_right:"
+                else:
+                    text = ":dart:"
+
+            st.write(f"Set: {set_id + 1} {text}")
 
         with cols[1]:
             if completed == 0:
