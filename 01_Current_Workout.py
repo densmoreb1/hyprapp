@@ -37,12 +37,12 @@ else:
 
 # Get the first uncompleted workout
 # Get week_id
-query = "select min(week_id) from mesos where completed = 0 and meso_id = %s and user_id = %s"
+query = "select min(week_id) from mesos where completed_day = 0 and meso_id = %s and user_id = %s"
 week_id = conn.execute_query(query, (meso_id, user_id))[0][0]
 
 
 # Get day_id
-query = "select min(day_id) from mesos where completed = 0 and meso_id = %s and week_id = %s and user_id = %s"
+query = "select min(day_id) from mesos where completed_day = 0 and meso_id = %s and week_id = %s and user_id = %s"
 day_id = conn.execute_query(query, (meso_id, week_id, user_id))[0][0]
 
 
@@ -239,15 +239,14 @@ for i in range(len(exercises)):
 
         with cols[3]:
             if completed == 0:
-                box = st.checkbox("Complete", key=f"completed{exercise_name, set_id}")
-
-                if box:
+                if st.button("Complete Set", key=f"completed{exercise_name, set_id}"):
                     query = """
                             update mesos
                             set reps = %s, weight = %s, completed = 1, date_completed = now()
                             where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
                             """
                     conn.execute_query(query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id))
+                    st.rerun()
 
     # Formatting with columns
     set_cols = st.columns([2, 15])
@@ -287,4 +286,10 @@ if st.button("Add Exercise"):
 st.write("####")
 
 if st.button("Complete Workout"):
+    query = """
+            update mesos
+            set completed_day = 1
+            where day_id = %s and week_id = %s and meso_id = %s and user_id = %s
+            """
+    conn.execute_query(query, (day_id, week_id, meso_id, user_id))
     st.switch_page("pages/03_Previous_Workouts.py")

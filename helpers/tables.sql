@@ -19,6 +19,7 @@ create table if not exists users (
 create table if not exists mesos (
 	id int auto_increment primary key,
 	completed int,
+	completed_day int,
 	day_id int,
 	exercise_id int,
 	meso_id int,
