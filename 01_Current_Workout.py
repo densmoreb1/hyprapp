@@ -199,7 +199,7 @@ for i in range(len(exercises)):
             if completed == 1:
                 if prev_reps is not None:
                     if reps is not None:
-                        prev_volume = prev_weight * prev_reps
+                        prev_volume = prev_weight * (prev_reps - 1)
                         current_volume = weight * reps
 
                         if current_volume >= prev_volume:

@@ -23,6 +23,6 @@ def login():
         st.error(e)
 
     if st.session_state["authentication_status"]:
-        authenticator.logout(location="sidebar", key="logout-demo-app-home")
+        authenticator.logout(location="sidebar", key="logout-app-home")
     elif st.session_state["authentication_status"] is False:
         st.error("Username/password is incorrect")
