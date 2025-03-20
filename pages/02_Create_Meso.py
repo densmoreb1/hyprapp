@@ -81,7 +81,7 @@ if old_meso_id is None:
                 meso[i] = final_exercise_list
 
 else:
-    query = "select max(week_id) from mesos where meso_id = %s and user_id = %s"
+    query = "select max(week_id) - 1 from mesos where meso_id = %s and user_id = %s"
     last_week = conn.execute_query(query, (old_meso_id, user_id))[0][0]
 
     query = """
@@ -110,9 +110,14 @@ else:
             exercises_per = st.selectbox("How many exercises?", (1, 2, 3, 4, 5, 6, 7, 8, 9), index=len(current_day) - 1, key=f"per{i}")
             final_exercise_list = []
             for r in range(exercises_per):
-                prev_exercise_id = current_day[r][0]
-                prev_name = current_day[r][2]
-                prev_group = current_day[r][3]
+                if r <= len(current_day) - 1:
+                    prev_exercise_id = current_day[r][0]
+                    prev_name = current_day[r][2]
+                    prev_group = current_day[r][3]
+                else:
+                    prev_exercise_id = None
+                    prev_name = None
+                    prev_group = None
 
                 if prev_group in muscle_groups:
                     index = muscle_groups.index(prev_group)
@@ -160,9 +165,9 @@ if result and name != "":
                 exercise_id = conn.execute_query("select id from exercises where name = %s", (value[order_id],))[0][0]
                 insert_query = """
                             insert into mesos
-                            (meso_id, name, user_id, completed, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
-                            (%s,        %s,      %s,        %s,     %s,   %s,     %s,       %s,          %s,     %s,      %s, now())
+                            (meso_id, name, user_id, completed, completed_day, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
+                            (%s,        %s,      %s,        %s,             %s,    %s,   %s,     %s,       %s,          %s,      %s,     %s,        now())
                             """
-                conn.execute_query(insert_query, (meso_id, name, user_id, 0, 0, 0, 0, order_id, exercise_id, day_id, week_id))
+                conn.execute_query(insert_query, (meso_id, name, user_id, 0, 0, 0, None, None, order_id, exercise_id, day_id, week_id))
 
     st.toast("Meso Created", icon="✅")
