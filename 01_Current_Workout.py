@@ -1,5 +1,9 @@
 from helpers.connection import MySQLDatabase
 from helpers.login import login
+from helpers.dialogs import exercise_history
+from helpers.dialogs import change_exercise
+from helpers.dialogs import add_exercise
+from helpers.dialogs import records
 import streamlit as st
 
 # Login
@@ -61,91 +65,6 @@ exercises = conn.execute_query(query, (day_id, week_id, meso_id, user_id))
 st.write(f"## Week {week_id + 1} Day {day_id + 1}")
 
 
-@st.dialog("Add exercise")
-def add_exercise():
-
-    query = "select distinct muscle_group from exercises"
-    sql = conn.execute_query(query)
-    groups = [u[0] for u in sql]
-
-    group = st.selectbox("Muscle Group", groups, index=None)
-
-    sql = conn.execute_query("select name from exercises where muscle_group = %s", (group,))
-    exercise_selection = [e[0] for e in sql]
-    exercise = st.selectbox("Exercise", exercise_selection, index=None, placeholder="Exercise", label_visibility="collapsed")
-    if exercise:
-        exercise_id = conn.execute_query("select id from exercises where name = %s", (exercise,))[0][0]
-
-    query = "select max(order_id) from mesos where user_id = %s and meso_id = %s and day_id = %s and week_id = %s"
-    max_order_id = conn.execute_query(query, (user_id, meso_id, day_id, week_id))[0][0]
-
-    if st.button("Confirm"):
-        insert_query = """
-                    insert into mesos
-                    (meso_id, name, user_id, completed, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
-                    (%s,        %s,      %s,        %s,     %s,   %s,     %s,       %s,          %s,     %s,      %s, now())
-                    """
-        conn.execute_query(insert_query, (meso_id, meso_name, user_id, 0, 0, None, None, max_order_id + 1, exercise_id, day_id, week_id))
-        st.rerun()
-
-
-@st.dialog("Change exercise")
-def change_exercise(exercise_name, exercise_id):
-    group = conn.execute_query("select muscle_group from exercises where id = %s", (exercise_id,))[0][0]
-    sql = conn.execute_query("select name from exercises where muscle_group = %s", (group,))
-    exercise_selection = [e[0] for e in sql]
-
-    updated_exercise = st.selectbox(f"{group.capitalize()} Exercises", exercise_selection)
-    updated_exercise_id = conn.execute_query("select id from exercises where name = %s", (updated_exercise,))[0][0]
-
-    query = """
-            update mesos m
-            set m.exercise_id = %s, m.weight = NULL, m.reps = NULL, m.completed = 0
-            where m.day_id = %s and m.meso_id = %s and m.exercise_id = %s and user_id = %s and week_id >= %s
-            """
-    if st.button("Confirm"):
-        conn.execute_query(query, (updated_exercise_id, day_id, meso_id, exercise_id, user_id, week_id))
-        st.rerun()
-
-
-@st.dialog("Exercise history")
-def exercise_history(exercise_name, exercise_id):
-    query = """
-            select distinct name, meso_id
-            from mesos
-            where exercise_id = %s and user_id = %s and completed = 1
-            order by meso_id desc
-            """
-    sql = conn.execute_query(query, (exercise_id, user_id))
-    for i in range(len(sql)):
-        history_meso = sql[i][0]
-        st.markdown(f"## <ins>{history_meso}</ins>", unsafe_allow_html=True)
-
-        history = """
-                select distinct week_id, day_id
-                from mesos
-                where exercise_id = %s and user_id = %s and completed = 1 and name = %s
-                order by week_id desc
-                """
-        history_sql = conn.execute_query(history, (exercise_id, user_id, history_meso))
-
-        for j in range(len(history_sql)):
-            history_week = history_sql[j][0]
-            history_day = history_sql[j][1]
-            st.write(f"### Week {history_week + 1} Day {history_day + 1}")
-            history_reps = """
-                            select reps, weight, set_id
-                            from mesos
-                            where exercise_id = %s and user_id = %s and completed = 1 and name = %s and week_id = %s and day_id = %s
-                            order by set_id
-                            """
-            history_reps_sql = conn.execute_query(history_reps, (exercise_id, user_id, history_meso, history_week, history_day))
-            for h in range(len(history_reps_sql)):
-                reps = history_reps_sql[h][0]
-                weight = history_reps_sql[h][1]
-                st.write(f"Weight: {weight} Reps: {reps}")
-
-
 # Main Page
 # Exercise loop
 for i in range(len(exercises)):
@@ -167,13 +86,16 @@ for i in range(len(exercises)):
     with exercise_cols[0]:
         st.write(f"### {exercise_name}")
     with exercise_cols[1]:
-        button_cols = st.columns([1, 2])
+        button_cols = st.columns([1, 1, 1])
         with button_cols[0]:
             if st.button("Replace", key=f"swap{exercise_name}"):
-                change_exercise(exercise_name, exercise_id)
+                change_exercise(exercise_name, exercise_id, conn, day_id, meso_id, user_id, week_id)
         with button_cols[1]:
             if st.button("History", key=f"history{exercise_name}"):
-                exercise_history(exercise_name, exercise_id)
+                exercise_history(exercise_name, exercise_id, user_id, conn)
+        with button_cols[2]:
+            if st.button("Records", key=f"records{exercise_name}"):
+                records(conn, user_id, meso_id, exercise_id, exercise_name)
 
     # Set loop
     for i in range(len(workout)):
@@ -280,7 +202,7 @@ for i in range(len(exercises)):
 
 
 if st.button("Add Exercise"):
-    add_exercise()
+    add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name)
 
 # Complete workout - navigate to previous workout page
 st.write("####")
