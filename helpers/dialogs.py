@@ -19,8 +19,8 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
     weight = sql[0]
     date = datetime.datetime.strftime(sql[2], "%m/%d/%Y")
 
-    st.write(f"Records for {exercise_name}")
-    st.write(date)
+    st.write(f"### {exercise_name.capitalize()}")
+    st.write(f"#### Most Volume {date}")
     st.write(f"Weight: {weight} Reps: {reps}")
 
     # most weight
@@ -97,14 +97,17 @@ def exercise_history(exercise_name, exercise_id, user_id, conn):
         for j in range(len(history_sql)):
             history_week = history_sql[j][0]
             history_day = history_sql[j][1]
-            st.write(f"### Week {history_week + 1} Day {history_day + 1}")
             history_reps = """
-                            select reps, weight, set_id
+                            select reps, weight, set_id, date_completed
                             from mesos
                             where exercise_id = %s and user_id = %s and completed = 1 and name = %s and week_id = %s and day_id = %s
                             order by set_id
                             """
             history_reps_sql = conn.execute_query(history_reps, (exercise_id, user_id, history_meso, history_week, history_day))
+            date = datetime.datetime.strftime(history_reps_sql[0][3], "%m/%d/%Y")
+
+            st.write(f"### {date} Week {history_week + 1} Day {history_day + 1}")
+
             for h in range(len(history_reps_sql)):
                 reps = history_reps_sql[h][0]
                 weight = history_reps_sql[h][1]
