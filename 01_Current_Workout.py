@@ -67,6 +67,7 @@ st.write(f"## Week {week_id + 1} Day {day_id + 1}")
 
 # Main Page
 # Exercise loop
+max_set_count = 0
 for i in range(len(exercises)):
     exercise_name = exercises[i][0]
     exercise_id = exercises[i][1]
@@ -108,6 +109,7 @@ for i in range(len(exercises)):
                 prev_reps = previous[i][1] + 1
                 prev_weight = float(previous[i][2])
 
+        max_set_count += 1
         set_id = workout[i][0]
         reps = workout[i][1]
         weight = workout[i][2]
@@ -134,41 +136,45 @@ for i in range(len(exercises)):
             st.write(f"Set: {set_id + 1} {text}")
 
         with cols[1]:
-            if completed == 0:
-                weight = st.number_input(
-                    "Weight",
-                    label_visibility="collapsed",
-                    placeholder=f"Weight: {prev_weight}",
-                    value=prev_weight,
-                    key=f"weight{exercise_name, set_id}",
-                    step=0.5,
-                )
+            if completed == 1:
+                input_weight = float(weight)
             else:
-                st.write(f"Weight: {weight}")
+                input_weight = prev_weight
+
+            weight = st.number_input(
+                "Weight",
+                label_visibility="collapsed",
+                placeholder=f"Weight: {prev_weight}",
+                value=input_weight,
+                key=f"weight{exercise_name, set_id}",
+                step=0.5,
+            )
 
         with cols[2]:
-            if completed == 0:
-                reps = st.number_input(
-                    "Reps",
-                    label_visibility="collapsed",
-                    placeholder=f"Reps: {prev_reps}",
-                    value=prev_reps,
-                    key=f"reps{exercise_name, set_id}",
-                    step=1,
-                )
+            if completed == 1:
+                input_reps = reps
             else:
-                st.write(f"Reps: {reps}")
+                input_reps = prev_reps
+
+            reps = st.number_input(
+                "Reps",
+                label_visibility="collapsed",
+                placeholder=f"Reps: {prev_reps}",
+                value=input_reps,
+                key=f"reps{exercise_name, set_id}",
+                step=1,
+            )
 
         with cols[3]:
-            if completed == 0:
-                if st.button("Complete Set", key=f"completed{exercise_name, set_id}"):
-                    query = """
-                            update mesos
-                            set reps = %s, weight = %s, completed = 1, date_completed = now()
-                            where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
-                            """
-                    conn.execute_query(query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id))
-                    st.rerun()
+            # if completed == 0:
+            if st.button("Complete Set", key=f"completed{exercise_name, set_id}"):
+                query = """
+                        update mesos
+                        set reps = %s, weight = %s, completed = 1, date_completed = now()
+                        where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
+                        """
+                conn.execute_query(query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id))
+                st.rerun()
 
     # Formatting with columns
     set_cols = st.columns([2, 15])
@@ -209,9 +215,20 @@ st.write("####")
 
 if st.button("Complete Workout"):
     query = """
-            update mesos
-            set completed_day = 1
-            where day_id = %s and week_id = %s and meso_id = %s and user_id = %s
+            select count(set_id)
+            from mesos
+            where day_id = %s and week_id = %s and meso_id = %s and user_id = %s and completed = 1
             """
-    conn.execute_query(query, (day_id, week_id, meso_id, user_id))
-    st.switch_page("pages/03_Previous_Workouts.py")
+    set_count = conn.execute_query(query, (day_id, week_id, meso_id, user_id))[0][0]
+
+    if set_count == max_set_count:
+
+        query = """
+                update mesos
+                set completed_day = 1
+                where day_id = %s and week_id = %s and meso_id = %s and user_id = %s
+                """
+        conn.execute_query(query, (day_id, week_id, meso_id, user_id))
+        st.switch_page("pages/03_Previous_Workouts.py")
+    else:
+        st.toast("Complete all sets", icon="⚠️")

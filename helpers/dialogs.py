@@ -14,10 +14,14 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
             order by max(weight) * max(reps)
             desc limit 1
             """
-    sql = conn.execute_query(query, (user_id, exercise_id))[0]
-    reps = sql[1]
-    weight = sql[0]
-    date = datetime.datetime.strftime(sql[2], "%m/%d/%Y")
+    sql = conn.execute_query(query, (user_id, exercise_id))
+    if len(sql) == 0:
+        st.write(f"No previous workouts for {exercise_name}")
+        st.stop()
+
+    reps = sql[0][1]
+    weight = sql[0][0]
+    date = datetime.datetime.strftime(sql[0][2], "%m/%d/%Y")
 
     st.write(f"### {exercise_name.capitalize()}")
     st.write(f"#### Most Volume {date}")
