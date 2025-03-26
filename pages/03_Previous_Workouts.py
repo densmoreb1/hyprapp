@@ -98,3 +98,10 @@ for day_id in range(len(day_tabs)):
                     st.write(f"Weight: {weight}")
                 with cols[2]:
                     st.write(f"Reps: {reps}")
+
+
+st.write("###")
+if st.button("Delete Meso"):
+    query = "delete from mesos where user_id = %s and meso_id = %s"
+    conn.execute_query(query, (user_id, meso_id))
+    st.toast(f"{meso_name} deleted", icon="👑")
