@@ -94,7 +94,7 @@ def exercise_history(exercise_name, exercise_id, user_id, conn):
                   select distinct week_id, day_id
                   from mesos
                   where exercise_id = %s and user_id = %s and completed = 1 and name = %s
-                  order by week_id desc
+                  order by week_id desc, day_id desc
                   """
         history_sql = conn.execute_query(history, (exercise_id, user_id, history_meso))
 
