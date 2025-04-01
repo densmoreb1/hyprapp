@@ -126,7 +126,7 @@ for i in range(len(exercises)):
                         prev_volume = prev_weight * (prev_reps - 1)
                         current_volume = weight * reps
 
-                        if current_volume >= prev_volume:
+                        if current_volume > prev_volume:
                             text = ":dart:"
                         else:
                             text = ":arrow_lower_right:"
@@ -166,8 +166,7 @@ for i in range(len(exercises)):
             )
 
         with cols[3]:
-            # if completed == 0:
-            if st.button("Complete Set", key=f"completed{exercise_name, set_id}"):
+            if st.button("Complete Set", key=f"completed{exercise_name, set_id}") and weight is not None and reps is not None:
                 query = """
                         update mesos
                         set reps = %s, weight = %s, completed = 1, date_completed = now()
