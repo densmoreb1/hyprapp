@@ -4,6 +4,7 @@ from helpers.dialogs import exercise_history
 from helpers.dialogs import change_exercise
 from helpers.dialogs import add_exercise
 from helpers.dialogs import records
+from helpers.dialogs import enter_score
 import streamlit as st
 
 # Login
@@ -20,7 +21,9 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[0][0]
+    sql = conn.execute_query("select id, keep_score from users where name = %s", (user_name,))
+    user_id = sql[0][0]
+    keep_score = sql[0][1]
 else:
     st.stop()
 
@@ -98,6 +101,8 @@ for i in range(len(exercises)):
             if st.button("Records", key=f"records{exercise_name}"):
                 records(conn, user_id, meso_id, exercise_id, exercise_name)
 
+    max_week_query = "select max(week_id) from mesos where meso_id = %s and user_id = %s"
+    max_week_id = conn.execute_query(max_week_query, (meso_id, user_id))[0][0]
     # Set loop
     for i in range(len(workout)):
         prev_reps = None
@@ -167,13 +172,14 @@ for i in range(len(exercises)):
 
         with cols[3]:
             if st.button("Complete Set", key=f"completed{exercise_name, set_id}") and weight is not None and reps is not None:
+                if set_id + 1 == len(workout) and keep_score == 1:
+                    enter_score(conn, meso_id, meso_name, user_id, set_id + 1, order_id, exercise_id, day_id, week_id, max_week_id)
                 query = """
                         update mesos
                         set reps = %s, weight = %s, completed = 1, date_completed = now()
                         where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
                         """
                 conn.execute_query(query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id))
-                st.rerun()
 
     # Formatting with columns
     set_cols = st.columns([2, 15])
@@ -182,8 +188,6 @@ for i in range(len(exercises)):
     with set_cols[1]:
         remove_set = st.button("Remove set", key=f"remove{exercise_name, set_id}")
 
-    max_week_query = "select max(week_id) from mesos where meso_id = %s and user_id = %s"
-    max_week_id = conn.execute_query(max_week_query, (meso_id, user_id))[0][0]
     if remove_set:
         query = """
                 delete from mesos
@@ -201,7 +205,7 @@ for i in range(len(exercises)):
                 (%s,        %s,      %s,         0,            0,     %s,   %s,     %s,       %s,          %s,     %s,      %s,      now())
                 """
         for i in range(week_id, max_week_id + 1):
-            conn.execute_query(query, (meso_id, meso_name, user_id, set_id + 1, reps, weight, order_id, exercise_id, day_id, i))
+            conn.execute_query(query, (meso_id, meso_name, user_id, set_id + 1, None, None, order_id, exercise_id, day_id, i))
 
         st.rerun()
 

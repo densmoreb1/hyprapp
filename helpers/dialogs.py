@@ -2,6 +2,49 @@ import streamlit as st
 import datetime
 
 
+def add_or_not(pump, soreness, effort):
+
+    if soreness <= 2:
+        if effort <= 3:
+            return True
+    elif soreness == 3:
+        if pump <= 3 and effort <= 2:
+            return True
+
+    return False
+
+
+@st.dialog("Score")
+def enter_score(conn, meso_id, meso_name, user_id, set_id, order_id, exercise_id, day_id, week_id, max_week_id):
+
+    st.write("Enter scores")
+
+    mapping = {"None": 1, "Low": 2, "Medium": 3, "High": 4}
+
+    if week_id != 0:
+        soreness = st.segmented_control("Soreness (from last workout)", options=mapping.keys(), key="sore")
+    else:
+        soreness = "None"
+
+    pump = st.segmented_control("Pump", options=mapping.keys(), key="pump")
+    effort = st.segmented_control("Effort", options=mapping.keys(), key="effort")
+
+    if pump and soreness and effort:
+        add_set = add_or_not(mapping[pump], mapping[soreness], mapping[effort])
+        st.write(add_set)
+
+        if st.button("Enter"):
+            if add_set:
+                query = """
+                        insert into mesos
+                        (meso_id, name, user_id, completed, completed_day, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
+                        (%s,        %s,      %s,         0,            0,     %s,   %s,     %s,       %s,          %s,     %s,      %s,      now())
+                        """
+                for i in range(week_id + 1, max_week_id + 1):
+                    conn.execute_query(query, (meso_id, meso_name, user_id, set_id, None, None, order_id, exercise_id, day_id, i))
+            st.rerun()
+
+
 @st.dialog("Records")
 def records(conn, user_id, meso_id, exercise_id, exercise_name):
 
@@ -11,8 +54,8 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
             from mesos
             where user_id = %s and completed = 1 and exercise_id = %s
             group by date_completed, exercise_id
-            order by max(weight) * max(reps)
-            desc limit 1
+            order by max(weight) * max(reps) desc
+            limit 1
             """
     sql = conn.execute_query(query, (user_id, exercise_id))
     if len(sql) == 0:

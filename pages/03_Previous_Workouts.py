@@ -99,6 +99,9 @@ for day_id in range(len(day_tabs)):
                 with cols[2]:
                     st.write(f"Reps: {reps}")
 
+st.write("###")
+if st.button("Current Workout"):
+    st.switch_page("01_Current_Workout.py")
 
 st.write("###")
 if st.button("Delete Meso"):
