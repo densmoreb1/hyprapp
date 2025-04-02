@@ -17,7 +17,9 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[0][0]
+    sql = conn.execute_query("select id, keep_score from users where name = %s", (user_name,))
+    user_id = sql[0][0]
+    keep_score = sql[0][1]
 else:
     st.stop()
 
@@ -52,6 +54,20 @@ def add_user():
 
 
 if st.session_state["authentication_status"]:
+
+    with st.form(key="score"):
+        mapping = {0: "Off", 1: "On"}
+        reverse_mapping = {"Off": 0, "On": 1}
+
+        st.write("### User Workout Settings")
+
+        change = st.segmented_control("Scoring", options=mapping.values(), default=mapping[keep_score])
+
+        if st.form_submit_button():
+            query = "update users set keep_score = %s where id = %s"
+            conn.execute_query(query, (reverse_mapping[change], user_id))
+            st.success("Updated scoring")
+
     authenticator = st.session_state.get("authenticator")
     try:
         if authenticator.reset_password(st.session_state["username"]):
