@@ -172,14 +172,16 @@ for i in range(len(exercises)):
 
         with cols[3]:
             if st.button("Complete Set", key=f"completed{exercise_name, set_id}") and weight is not None and reps is not None:
-                if set_id + 1 == len(workout) and keep_score == 1:
-                    enter_score(conn, meso_id, meso_name, user_id, set_id + 1, order_id, exercise_id, day_id, week_id, max_week_id)
                 query = """
                         update mesos
                         set reps = %s, weight = %s, completed = 1, date_completed = now()
                         where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
                         """
                 conn.execute_query(query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id))
+                if set_id + 1 == len(workout) and keep_score == 1:
+                    enter_score(conn, meso_id, meso_name, user_id, set_id + 1, order_id, exercise_id, day_id, week_id, max_week_id)
+                else:
+                    st.rerun()
 
     # Formatting with columns
     set_cols = st.columns([2, 15])
