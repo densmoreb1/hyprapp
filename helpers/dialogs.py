@@ -71,6 +71,24 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
     st.write(f"Weight: {weight} Reps: {reps}")
 
     # most weight
+    query = """
+            select max(weight), date_completed
+            from mesos
+            where user_id = %s and completed = 1 and exercise_id = %s
+            group by date_completed, exercise_id
+            order by max(weight), date_completed desc
+            limit 1
+            """
+    sql = conn.execute_query(query, (user_id, exercise_id))
+    if len(sql) == 0:
+        st.write(f"No previous workouts for {exercise_name}")
+        st.stop()
+
+    weight = sql[0][0]
+    date = datetime.datetime.strftime(sql[0][1], "%m/%d/%Y")
+
+    st.write(f"#### Most Weight {date}")
+    st.write(f"Weight: {weight}")
 
 
 @st.dialog("Add exercise")
