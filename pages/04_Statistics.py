@@ -1,6 +1,7 @@
 from helpers.connection import MySQLDatabase
 from helpers.login import login
 import plotly.graph_objects as go
+import plotly.express as px
 import streamlit as st
 import pandas as pd
 
@@ -22,6 +23,10 @@ if "username" in st.session_state and st.session_state["username"] is not None:
 else:
     st.stop()
 
+primary_color = "#EF5350"
+background_color = "#121212"
+text_color = "#E0E0E0"
+line_color = "#EF5350"
 
 st.write("# Statistics")
 
@@ -38,29 +43,37 @@ if len(muscle_groups) != 0:
     sql = conn.execute_query(query, (user_id,))
     mesos = [g[0] for g in sql]
 
-    for meso_name in mesos:
+    for muscle in muscle_groups:
+        sets_query = """
+        select m.name, m.week_id + 1, e.muscle_group, count(m.set_id), m.meso_id
+        from mesos m
+        inner join exercises e on m.exercise_id = e.id
+        where user_id = %s and weight is not null and completed = 1 and e.muscle_group = %s
+        group by m.meso_id, m.name, m.week_id, e.muscle_group
+        order by m.meso_id
+        """
+        sets_sql = conn.execute_query(sets_query, (user_id, muscle))
 
-        st.write(f" ### {meso_name}")
+        if len(sets_sql) > 0:
+            st.write(muscle.capitalize())
+            df = pd.DataFrame(sets_sql, columns=["MesoName", "Week", "muscle_group", "Sets", "meso_id"])
 
-        for muscle in muscle_groups:
-            sets_query = """
-            select m.name, m.week_id + 1, e.muscle_group, count(m.set_id), m.meso_id
-            from mesos m
-            inner join exercises e on m.exercise_id = e.id
-            where user_id = %s and weight is not null and completed = 1 and m.name = %s and e.muscle_group = %s
-            group by m.name, m.week_id, e.muscle_group, m.meso_id
-            order by m.meso_id
-            """
-            sets_sql = conn.execute_query(sets_query, (user_id, meso_name, muscle))
+            fig = px.bar(
+                df,
+                x="Week",
+                y="Sets",
+                color="MesoName",
+                barmode="group",  # or "stack"
+                text="Sets",
+            )
 
-            if len(sets_sql) > 0:
-                st.write(muscle.capitalize())
-                df = pd.DataFrame(sets_sql, columns=["meso_name", "Week", "muscle_group", "Sets", "meso_id"])
-                df = df[df["muscle_group"] == muscle]
-                st.bar_chart(df, x="Week", y="Sets")
-            else:
-                st.write(muscle.capitalize())
-                st.write("None")
+            fig.update_layout(xaxis_title="Week", yaxis_title="Sets", legend_title="Mesocycle", bargap=0.2, height=500)
+            fig.update_traces(textposition="outside")
+            st.plotly_chart(fig, use_container_width=True)
+
+        else:
+            st.write(muscle.capitalize())
+            st.write("None")
 
 st.write("### Volume")
 
@@ -86,11 +99,10 @@ if exercise:
     sql = conn.execute_query(query, (user_id, exercise_id))
 
     if len(sql) > 0:
-        st.write(exercise.capitalize())
         df = pd.DataFrame(sql, columns=["reps", "weight", "date"])
         df["date"] = pd.to_datetime(df["date"])
         df["volume"] = df["reps"] * df["weight"]  # Total volume
-        df["label"] = df["reps"].astype(str) + " x " + df["weight"].astype(str)  # e.g. "10 x 165"
+        df["label"] = df["weight"].astype(str) + " x " + df["reps"].astype(str)  # e.g. "10 x 165"
 
         # Plotly chart
         fig = go.Figure()
@@ -101,18 +113,15 @@ if exercise:
                 y=df["volume"],
                 mode="lines+markers",
                 name="Total Volume",
-                line=dict(color="green", width=3),
+                marker=dict(color=primary_color, size=10),
+                line=dict(color=line_color, width=2),
                 hovertext=df["label"],  # Show "10 x 165" on hover
                 hoverinfo="text+name+y+x",  # Customize hover: text + point info
             )
         )
 
-        fig.update_layout(
-            title="Training Volume Over Time", xaxis_title="Date", yaxis_title="Volume (Reps × Weight)", hovermode="x unified"
-        )
-
+        fig.update_layout(xaxis_title="Date", yaxis_title="Volume (Reps × Weight)", hovermode="x unified")
         st.plotly_chart(fig)
 
     else:
-        st.write(exercise.capitalize())
         st.write("None")
