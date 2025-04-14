@@ -20,7 +20,6 @@ def enter_score(conn, meso_id, meso_name, user_id, set_id, order_id, exercise_id
     st.write("Enter scores")
 
     mapping = {"None": 1, "Low": 2, "Medium": 3, "High": 4}
-
     if week_id != 0:
         soreness = st.segmented_control("Soreness (from last workout)", options=mapping.keys(), key="sore")
     else:
