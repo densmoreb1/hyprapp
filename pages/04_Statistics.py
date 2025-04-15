@@ -101,7 +101,7 @@ if exercise:
     if len(sql) > 0:
         df = pd.DataFrame(sql, columns=["reps", "weight", "date"])
         df["date"] = pd.to_datetime(df["date"])
-        df["volume"] = df["reps"] * df["weight"]  # Total volume
+        df["volume"] = df["reps"].astype("float") * df["weight"].astype("float")  # Total volume
         df["label"] = df["weight"].astype(str) + " x " + df["reps"].astype(str)  # e.g. "10 x 165"
 
         # Plotly chart
