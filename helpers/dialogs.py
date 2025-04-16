@@ -1,5 +1,6 @@
 import streamlit as st
 import datetime
+import time
 
 
 def add_or_not(pump, soreness, effort):
@@ -12,6 +13,32 @@ def add_or_not(pump, soreness, effort):
             return True
 
     return False
+
+
+def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
+    query = "select muscle_group from exercises where id = %s"
+    group = conn.execute_query(query, (exercise_id,))[0][0]
+
+    query = """
+            select count(set_id)
+            from mesos m
+            inner join exercises e on m.exercise_id = e.id
+            where user_id = %s and meso_id = %s and muscle_group = %s
+                and (week_id = %s or week_id = %s)
+            group by week_id
+            order by week_id
+            """
+    sql = conn.execute_query(query, (user_id, meso_id, group, week_id - 1, week_id))
+    last = int(sql[0][0])
+    current = int(sql[1][0])
+
+    if last > current:
+        text = "↘️"
+    else:
+        text = "🎯"
+
+    st.toast(f"{group.capitalize()} Last week: {last} Current week: {current}", icon=text)
+    time.sleep(1)
 
 
 @st.dialog("Score")

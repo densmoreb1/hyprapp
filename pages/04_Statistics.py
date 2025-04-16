@@ -38,11 +38,6 @@ muscle_groups = st.multiselect("Muscle Groups", muscle_groups)
 
 # Show set increase over each meso
 if len(muscle_groups) != 0:
-    # Get Meso for the selected User
-    query = "select distinct name, meso_id from mesos where user_id = %s and completed = 1 order by meso_id desc"
-    sql = conn.execute_query(query, (user_id,))
-    mesos = [g[0] for g in sql]
-
     for muscle in muscle_groups:
         sets_query = """
         select m.name, m.week_id + 1, e.muscle_group, count(m.set_id), m.meso_id

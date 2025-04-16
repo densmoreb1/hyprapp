@@ -5,6 +5,7 @@ from helpers.dialogs import change_exercise
 from helpers.dialogs import add_exercise
 from helpers.dialogs import records
 from helpers.dialogs import enter_score
+from helpers.dialogs import weekly_volume
 import streamlit as st
 
 # Login
@@ -198,6 +199,9 @@ for i in range(len(exercises)):
         for i in range(week_id, max_week_id + 1):
             conn.execute_query(query, (set_id, day_id, i, exercise_id, meso_name, user_id))
 
+        if week_id != 0:
+            weekly_volume(conn, user_id, meso_id, exercise_id, week_id)
+
         st.rerun()
 
     if add_set:
@@ -208,6 +212,9 @@ for i in range(len(exercises)):
                 """
         for i in range(week_id, max_week_id + 1):
             conn.execute_query(query, (meso_id, meso_name, user_id, set_id + 1, None, None, order_id, exercise_id, day_id, i))
+
+        if week_id != 0:
+            weekly_volume(conn, user_id, meso_id, exercise_id, week_id)
 
         st.rerun()
 
