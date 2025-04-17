@@ -32,13 +32,13 @@ st.write("# Statistics")
 
 
 st.write("### Sets")
-groups_sql = conn.execute_query("select distinct muscle_group from exercises")
+groups_sql = conn.execute_query("select distinct muscle_group from exercises order by muscle_group")
 muscle_groups = [g[0] for g in groups_sql]
-muscle_groups = st.multiselect("Muscle Groups", muscle_groups)
+muscle_group = st.multiselect("Muscle Groups", muscle_groups)
 
 # Show set increase over each meso
-if len(muscle_groups) != 0:
-    for muscle in muscle_groups:
+if len(muscle_group) != 0:
+    for muscle in muscle_group:
         sets_query = """
         select m.name, m.week_id + 1, e.muscle_group, count(m.set_id), m.meso_id
         from mesos m
@@ -72,13 +72,9 @@ if len(muscle_groups) != 0:
 
 st.write("### Volume")
 
-query = "select distinct muscle_group from exercises"
-sql = conn.execute_query(query)
-groups = [u[0] for u in sql]
+group = st.selectbox("Muscle Group", muscle_groups, index=None)
 
-group = st.selectbox("Muscle Group", groups, index=None)
-
-sql = conn.execute_query("select name from exercises where muscle_group = %s", (group,))
+sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (group,))
 exercise_selection = [e[0] for e in sql]
 exercise = st.selectbox("Exercise", exercise_selection, index=None, placeholder="Exercise", label_visibility="collapsed")
 if exercise:

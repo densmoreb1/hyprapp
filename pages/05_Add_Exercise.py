@@ -23,7 +23,7 @@ else:
 
 st.write("# Add Exercise")
 
-query = "select distinct muscle_group from exercises"
+query = "select distinct muscle_group from exercises order by muscle_group"
 sql = conn.execute_query(query)
 groups = [u[0] for u in sql]
 

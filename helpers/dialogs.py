@@ -37,8 +37,18 @@ def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
     else:
         text = "🎯"
 
-    st.toast(f"{group.capitalize()} Last week: {last} Current week: {current}", icon=text)
+    st.toast(f"{group.capitalize()} Last: {last} Current: {current}", icon=text)
+
     time.sleep(1)
+
+
+@st.dialog("End Meso")
+def end(conn, user_id, meso_id):
+    st.write("Warning you are about to end the meso cycle early")
+    st.write("This will delete sets that have not been completed")
+    if st.button("Confirm"):
+        query = "delete from mesos where user_id = %s and meso_id = %s and completed = 0;"
+        conn.execute_query(query, (user_id, meso_id))
 
 
 @st.dialog("Score")
@@ -120,13 +130,13 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
 @st.dialog("Add exercise")
 def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name):
 
-    query = "select distinct muscle_group from exercises"
+    query = "select distinct muscle_group from exercises order by muscle_group"
     sql = conn.execute_query(query)
     groups = [u[0] for u in sql]
 
     group = st.selectbox("Muscle Group", groups, index=None)
 
-    sql = conn.execute_query("select name from exercises where muscle_group = %s", (group,))
+    sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (group,))
     exercise_selection = [e[0] for e in sql]
     exercise = st.selectbox("Exercise", exercise_selection, index=None, placeholder="Exercise", label_visibility="collapsed")
     if exercise:
@@ -147,8 +157,8 @@ def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name):
 
 @st.dialog("Change exercise")
 def change_exercise(exercise_name, exercise_id, conn, day_id, meso_id, user_id, week_id):
-    group = conn.execute_query("select muscle_group from exercises where id = %s", (exercise_id,))[0][0]
-    sql = conn.execute_query("select name from exercises where muscle_group = %s", (group,))
+    group = conn.execute_query("select muscle_group from exercises where id = %s order by muscle_group", (exercise_id,))[0][0]
+    sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (group,))
     exercise_selection = [e[0] for e in sql]
 
     updated_exercise = st.selectbox(f"{group.capitalize()} Exercises", exercise_selection)

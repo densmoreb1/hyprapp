@@ -103,7 +103,6 @@ st.write("###")
 if st.button("Current Workout"):
     st.switch_page("01_Current_Workout.py")
 
-st.write("###")
 if st.button("Delete Meso"):
     query = "delete from mesos where user_id = %s and meso_id = %s"
     conn.execute_query(query, (user_id, meso_id))
