@@ -22,7 +22,7 @@ else:
 
 
 # Get the available exercises
-groups_sql = conn.execute_query("select distinct muscle_group from exercises")
+groups_sql = conn.execute_query("select distinct muscle_group from exercises order by muscle_group")
 muscle_groups = [g[0] for g in groups_sql]
 
 
@@ -65,7 +65,7 @@ if old_meso_id is None:
                 for r in range(exercises_per):
                     muscle = st.selectbox(f"Exercise {r + 1}", muscle_groups, key=f"muscle{i, r}", index=None, placeholder="Muscle Group")
 
-                    sql = conn.execute_query("select name from exercises where muscle_group = %s", (muscle,))
+                    sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (muscle,))
                     exercise_selection = [e[0] for e in sql]
                     exercise = st.selectbox(
                         "Exercise",
@@ -126,7 +126,7 @@ else:
 
                 muscle = st.selectbox(f"Exercise {r + 1}", muscle_groups, key=f"muscle{i, r}", index=index, placeholder=f"{prev_group}")
 
-                sql = conn.execute_query("select name from exercises where muscle_group = %s", (muscle,))
+                sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (muscle,))
                 exercise_selection = [e[0] for e in sql]
 
                 if prev_name in exercise_selection:
