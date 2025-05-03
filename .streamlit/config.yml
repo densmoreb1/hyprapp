@@ -51,6 +51,14 @@ credentials:
       password: $2b$12$O7e0z5hw39Ugxk.qw4pBgelLumc0ax1Dh7l8Bh8VtnRjfLlQE6YBK
       roles:
       - viewer
+    spencer:
+      email: spenc@gmail.com
+      first_name: spencer
+      last_name: Ch
+      logged_in: false
+      password: $2b$12$3odVKvxKCdCCN2jK3Eu3IOpP1wl0ZwqtU8tTvpnYVb1I0ulFCoO8C
+      password_hint: Abc
+      roles: null
     trevor:
       email: trevor@gmail.com
       failed_login_attempts: 0
