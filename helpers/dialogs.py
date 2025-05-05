@@ -112,7 +112,7 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
             from mesos
             where user_id = %s and completed = 1 and exercise_id = %s
             group by date_completed, exercise_id
-            order by max(weight), date_completed desc
+            order by max(weight) desc, date_completed desc
             limit 1
             """
     sql = conn.execute_query(query, (user_id, exercise_id))
