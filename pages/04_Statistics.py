@@ -43,7 +43,7 @@ if len(muscle_group) != 0:
         select m.name, m.week_id + 1, e.muscle_group, count(m.set_id), m.meso_id
         from mesos m
         inner join exercises e on m.exercise_id = e.id
-        where user_id = %s and weight is not null and completed = 1 and e.muscle_group = %s
+        where user_id = %s and weight is not null and reps != 0 and completed = 1 and e.muscle_group = %s
         group by m.meso_id, m.name, m.week_id, e.muscle_group
         order by m.meso_id
         """
@@ -83,7 +83,7 @@ if exercise:
     query = """
             select max(reps), max(weight), date(date_completed)
             from mesos
-            where user_id = %s and exercise_id = %s and completed = 1
+            where user_id = %s and exercise_id = %s and completed = 1 and reps != 0
             group by date(date_completed)
             order by date(date_completed)
             """
