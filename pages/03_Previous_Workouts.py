@@ -103,6 +103,34 @@ st.write("###")
 if st.button("Current Workout"):
     st.switch_page("01_Current_Workout.py")
 
+if st.button("Add a Week"):
+
+    max_week_id = int(conn.execute_query("select max(week_id) from mesos where user_id = %s and meso_id = %s", (user_id, meso_id))[0][0])
+
+    query = """select distinct day_id, exercise_id, order_id, set_id
+               from mesos where user_id = %s and meso_id = %s and week_id = %s
+               order by day_id, order_id
+            """
+
+    workout_week = conn.execute_query(query, (user_id, meso_id, max_week_id))
+
+    for each_day in workout_week:
+        day_id = each_day[0]
+        exercise_id = each_day[1]
+        order_id = each_day[2]
+        set_id = each_day[3]
+
+        insert_query = """
+                    insert into mesos
+                    (meso_id, name, user_id, completed, completed_day, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
+                    (%s,        %s,      %s,        %s,             %s,    %s,   %s,     %s,       %s,          %s,      %s,     %s,        now())
+                    """
+        conn.execute_query(
+            insert_query, (meso_id, meso_name, user_id, 0, 0, set_id, None, None, order_id, exercise_id, day_id, max_week_id + 1)
+        )
+
+    st.toast(f"Week {max_week_id + 2} added", icon="✅")
+
 if st.button("Delete Meso"):
     query = "delete from mesos where user_id = %s and meso_id = %s"
     conn.execute_query(query, (user_id, meso_id))
