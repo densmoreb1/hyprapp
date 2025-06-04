@@ -17,9 +17,10 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id, keep_score from users where name = %s", (user_name,))
+    sql = conn.execute_query("select id, keep_score, past_mesos from users where name = %s", (user_name,))
     user_id = sql[0][0]
     keep_score = sql[0][1]
+    past_mesos_count = sql[0][2]
 else:
     st.stop()
 
@@ -67,6 +68,20 @@ if st.session_state["authentication_status"]:
             query = "update users set keep_score = %s where id = %s"
             conn.execute_query(query, (reverse_mapping[change], user_id))
             st.success("Updated scoring")
+
+    with st.form(key="meso_count"):
+        st.write("### User Past Meso Count")
+
+        new = st.number_input(
+            "Number of past mesos to show:",
+            value=past_mesos_count,
+            step=1,
+        )
+
+        if st.form_submit_button():
+            query = "update users set past_mesos = %s where id = %s"
+            conn.execute_query(query, (new, user_id))
+            st.success("Updated view for past mesos")
 
     authenticator = st.session_state.get("authenticator")
     try:

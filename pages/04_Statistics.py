@@ -19,7 +19,9 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[0][0]
+    sql = conn.execute_query("select id, past_mesos from users where name = %s", (user_name,))
+    user_id = sql[0][0]
+    past_mesos_count = sql[0][1]
 else:
     st.stop()
 
@@ -38,16 +40,28 @@ muscle_group = st.multiselect("Muscle Groups", muscle_groups)
 
 # Show set increase over each meso
 if len(muscle_group) != 0:
+    limited_mesos_query = """
+    select distinct meso_id
+    from mesos
+    order by meso_id desc
+    limit %s
+    """
+    limited_mesos = conn.execute_query(limited_mesos_query, (past_mesos_count,))
+
+    meso_ids = [x[0] for x in limited_mesos]
+    placeholders = ", ".join(["%s"] * len(meso_ids))
+
     for muscle in muscle_group:
-        sets_query = """
+        sets_query = f"""
         select m.name, m.week_id + 1, e.muscle_group, count(m.set_id), m.meso_id
         from mesos m
         inner join exercises e on m.exercise_id = e.id
-        where user_id = %s and weight is not null and reps != 0 and completed = 1 and e.muscle_group = %s
+        where user_id = %s and weight is not null and reps != 0 and completed = 1 and e.muscle_group = %s and m.meso_id in ({placeholders})
         group by m.meso_id, m.name, m.week_id, e.muscle_group
         order by m.meso_id
         """
-        sets_sql = conn.execute_query(sets_query, (user_id, muscle))
+        params = [user_id, muscle] + meso_ids
+        sets_sql = conn.execute_query(sets_query, params)
 
         if len(sets_sql) > 0:
             st.write(muscle.capitalize())
