@@ -97,7 +97,11 @@ if exercise:
     query = """
             select max(reps), max(weight), date(date_completed)
             from mesos
-            where user_id = %s and exercise_id = %s and completed = 1 and reps != 0
+            where user_id = %s
+                and exercise_id = %s
+                and completed = 1
+                and reps != 0
+                and date_completed >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
             group by date(date_completed)
             order by date(date_completed)
             """

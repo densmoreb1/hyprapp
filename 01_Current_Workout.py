@@ -23,9 +23,10 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id, keep_score from users where name = %s", (user_name,))
+    sql = conn.execute_query("select id, keep_score, past_mesos from users where name = %s", (user_name,))
     user_id = sql[0][0]
     keep_score = sql[0][1]
+    past_mesos_count = sql[0][2]
 else:
     st.stop()
 
@@ -98,7 +99,7 @@ for i in range(len(exercises)):
                 change_exercise(exercise_name, exercise_id, conn, day_id, meso_id, user_id, week_id)
         with button_cols[1]:
             if st.button("History", key=f"history{exercise_name}"):
-                exercise_history(exercise_name, exercise_id, user_id, conn)
+                exercise_history(exercise_name, exercise_id, user_id, conn, past_mesos_count)
         with button_cols[2]:
             if st.button("Records", key=f"records{exercise_name}"):
                 records(conn, user_id, meso_id, exercise_id, exercise_name)

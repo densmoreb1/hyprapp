@@ -175,14 +175,17 @@ def change_exercise(exercise_name, exercise_id, conn, day_id, meso_id, user_id, 
 
 
 @st.dialog("Exercise history")
-def exercise_history(exercise_name, exercise_id, user_id, conn):
+def exercise_history(exercise_name, exercise_id, user_id, conn, past_mesos_count):
     query = """
             select distinct name, meso_id
             from mesos
-            where exercise_id = %s and user_id = %s and completed = 1
+            where exercise_id = %s
+                and user_id = %s
+                and completed = 1
             order by meso_id desc
+            limit %s
             """
-    sql = conn.execute_query(query, (exercise_id, user_id))
+    sql = conn.execute_query(query, (exercise_id, user_id, past_mesos_count))
     for i in range(len(sql)):
         history_meso = sql[i][0]
         st.markdown(f"## <ins>{history_meso}</ins>", unsafe_allow_html=True)
