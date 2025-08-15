@@ -3,3 +3,5 @@ certs/
 .env
 .venv
 logs*
+
+pyproject.toml
