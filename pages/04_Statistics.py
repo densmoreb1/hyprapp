@@ -19,9 +19,10 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id, past_mesos from users where name = %s", (user_name,))
+    sql = conn.execute_query("select id, past_mesos, months from users where name = %s", (user_name,))
     user_id = sql[0][0]
     past_mesos_count = sql[0][1]
+    months = sql[0][2]
 else:
     st.stop()
 
@@ -101,11 +102,11 @@ if exercise:
                 and exercise_id = %s
                 and completed = 1
                 and reps != 0
-                and date_completed >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                and date_completed >= DATE_SUB(CURDATE(), INTERVAL %s MONTH)
             group by date(date_completed)
             order by date(date_completed)
             """
-    sql = conn.execute_query(query, (user_id, exercise_id))
+    sql = conn.execute_query(query, (user_id, exercise_id, months))
 
     if len(sql) > 0:
         df = pd.DataFrame(sql, columns=["reps", "weight", "date"])
