@@ -14,6 +14,7 @@ create table if not exists users (
 	id int auto_increment primary key,
 	name varchar(100),
 	keep_score int,
+        past_mesos int,
         months int,
 	unique (name)
 );
@@ -37,8 +38,7 @@ create table if not exists mesos (
 	unique (meso_id, name, user_id, exercise_id, day_id, week_id, set_id)
 );
 
-insert into users (name) values ('brandon');
-insert into users (name) values ('ivy');
+insert into users (name, keep_score, past_mesos, months) values ('test', 0, 3, 8 );
 
 insert into exercises (name, muscle_group) values ('incline bench press', 'chest');
 insert into exercises (name, muscle_group) values ('pec dec', 'chest');

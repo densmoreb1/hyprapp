@@ -9,7 +9,7 @@ services:
     volumes:
       - .:/app
     working_dir: /app
-    command: bash -c "pip install -r requirements.txt && streamlit run 01_Current_Workout.py --logger.level=info 2>./server/streamlit/logs.txt"
+    command: bash -c "pip install -r requirements.txt && streamlit run 01_Current_Workout.py"
     environment:
       - MYSQL_HOST=mysql
       - MYSQL_USER=root
