@@ -75,7 +75,9 @@ Login:
 - username: test
 - password: testing123
 
-## Adding a User
+## User Management
+
+### Adding a User
 
 The web app uses [`streamlit-authenticator`](https://github.com/mkhorasani/Streamlit-Authenticator).
 It is a good idea to understand how the `.streamlit/config.yml` file works.
@@ -89,8 +91,26 @@ To add a username:
 A user is inserted into the database
 and the `config.yml` is updated with a hashed password.
 
-## Removing a User (Work in progress)
+### Removing a User (Work in progress)
 
 - Run this command with the name of user
   - `docker exec -it hypertrophy-mysql mysql -p -e "delete from fitness.users where name = '{name}'"`
 - Delete the user from `config.yml`
+
+## Scoring (Work in progress)
+
+There is a user setting called Scoring. After the last set of each exercise,
+it asks how pumped the muscle got, how sore it got from the last workout,
+and how much effort it took.
+
+Based on the feedback, it will either add a set to next week's exercise or keep it the same.
+
+## Future Work
+
+Features Coming Soon
+
+- Automated backups
+- Allow for importing a CSV
+- See number of possible sets when creating a meso
+- Score only the last set of the muscle group
+- See this future work list in the app
