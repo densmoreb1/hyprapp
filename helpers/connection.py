@@ -1,6 +1,5 @@
-import mysql.connector
+from mysql import connector
 import os
-from mysql.connector import Error
 
 
 class MySQLDatabase:
@@ -14,11 +13,11 @@ class MySQLDatabase:
     def connect(self):
         """Establish a connection to the MySQL database."""
         try:
-            self.connection = mysql.connector.connect(**self.config)
+            self.connection = connector.connect(**self.config)
             if self.connection.is_connected():
                 # print('Connected to MySQL database')
                 self.cursor = self.connection.cursor()
-        except Error as e:
+        except connector.Error as e:
             print("Error while connecting to MySQL", e)
             self.connection = None
 
@@ -34,7 +33,7 @@ class MySQLDatabase:
             else:
                 self.connection.commit()
                 return self.cursor.rowcount
-        except Error as e:
+        except connector.Error as e:
             return f"Error executing query: {e}"
 
     def close(self):
