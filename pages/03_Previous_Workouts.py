@@ -99,6 +99,15 @@ for day_id in range(len(day_tabs)):
                 with cols[2]:
                     st.write(f"Reps: {reps}")
 
+        if st.button(f"Reopen Day {day_id + 1}"):
+            query = """update mesos
+                       set completed_day = 0
+                       where user_id = %s and meso_id = %s and week_id = %s and day_id = %s
+                    """
+            conn.execute_query(query, (user_id, meso_id, week_id, day_id))
+            st.switch_page("01_Current_Workout.py")
+
+
 st.write("###")
 if st.button("Current Workout"):
     st.switch_page("01_Current_Workout.py")
