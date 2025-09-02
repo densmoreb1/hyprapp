@@ -27,7 +27,7 @@ query = "select distinct muscle_group from exercises order by muscle_group"
 sql = conn.execute_query(query)
 groups = [u[0] for u in sql]
 
-name = st.text_input("Exercise Name").lower()
+name = st.text_input("Exercise Name").lower().strip()
 group = st.selectbox("Muscle Group", groups, index=None)
 result = st.button("Create Exercise")
 
