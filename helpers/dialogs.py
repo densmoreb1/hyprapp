@@ -25,6 +25,7 @@ def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
             inner join exercises e on m.exercise_id = e.id
             where user_id = %s and meso_id = %s and muscle_group = %s
                 and (week_id = %s or week_id = %s)
+                and reps != 0
             group by week_id
             order by week_id
             """

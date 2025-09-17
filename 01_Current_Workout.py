@@ -32,7 +32,7 @@ else:
 
 
 # Get Meso for the selected User
-query = "select distinct name, meso_id from mesos where user_id = %s and completed = 0 order by meso_id desc"
+query = "select distinct name, meso_id from mesos where user_id = %s and (completed = 0 or completed_day = 0) order by meso_id desc"
 sql = conn.execute_query(query, (user_id,))
 mesos = [g[0] for g in sql]
 
