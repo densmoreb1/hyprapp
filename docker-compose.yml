@@ -1,6 +1,6 @@
 services:
   app:
-    image: python:latest
+    image: python:3.13
     container_name: hypertrophy-app
     hostname: hypertrophy-app
     restart: unless-stopped
