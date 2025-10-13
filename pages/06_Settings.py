@@ -3,6 +3,8 @@ from helpers.login import login
 import streamlit as st
 import yaml
 
+st.write("# Settings")
+
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
@@ -26,43 +28,13 @@ else:
     st.stop()
 
 
-def add_user():
-    try:
-        email, register_user, register_name = authenticator.register_user()
-        config = st.session_state["config"]
-        with open(".streamlit/config.yml", "w") as file:
-            yaml.dump(config, file, default_flow_style=False)
-
-    except Exception as e:
-        st.error(e)
-        st.stop()
-
-    if register_user is not None:
-        query = "select name from users"
-        sql = conn.execute_query(query)
-        names = [u[0] for u in sql]
-
-        if register_user not in names:
-            query = "insert into users (name) values (%s)"
-            conn.execute_query(query, (register_user,))
-
-            query = "select id from users where name = %s"
-            id = conn.execute_query(query, (register_user,))[0][0]
-            st.toast(f'User "{register_user}" was created with id of {id}')
-        else:
-            query = "select id from users where name = %s"
-            id = conn.execute_query(query, (register_user,))[0][0]
-            st.toast(f'User "{register_user}" already exists with id of {id}')
-
-
 if st.session_state["authentication_status"]:
 
     with st.form(key="score"):
-        mapping = {0: "Off", 1: "On"}
-        reverse_mapping = {"Off": 0, "On": 1}
-
         st.write("### User Workout Settings")
 
+        mapping = {0: "Off", 1: "On"}
+        reverse_mapping = {"Off": 0, "On": 1}
         change = st.segmented_control("Scoring", options=mapping.values(), default=mapping[keep_score])
 
         if st.form_submit_button():
@@ -106,4 +78,29 @@ if st.session_state["authentication_status"]:
 
 
 if "admin" in st.session_state["roles"]:
-    add_user()
+    try:
+        email, register_user, register_name = authenticator.register_user()
+        config = st.session_state["config"]
+        with open(".streamlit/config.yml", "w") as file:
+            yaml.dump(config, file, default_flow_style=False)
+
+    except Exception as e:
+        st.error(e)
+        st.stop()
+
+    if register_user is not None:
+        query = "select name from users"
+        sql = conn.execute_query(query)
+        names = [u[0] for u in sql]
+
+        if register_user not in names:
+            query = "insert into users (name) values (%s)"
+            conn.execute_query(query, (register_user,))
+
+            query = "select id from users where name = %s"
+            id = conn.execute_query(query, (register_user,))[0][0]
+            st.toast(f'User "{register_user}" was created with id of {id}')
+        else:
+            query = "select id from users where name = %s"
+            id = conn.execute_query(query, (register_user,))[0][0]
+            st.toast(f'User "{register_user}" already exists with id of {id}')

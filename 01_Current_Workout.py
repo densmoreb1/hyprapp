@@ -9,6 +9,7 @@ from helpers.dialogs import weekly_volume
 from helpers.dialogs import end
 import streamlit as st
 
+
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")

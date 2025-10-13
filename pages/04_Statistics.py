@@ -5,6 +5,8 @@ import plotly.express as px
 import streamlit as st
 import pandas as pd
 
+st.write("# Statistics")
+
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
@@ -30,8 +32,6 @@ primary_color = "#EF5350"
 background_color = "#121212"
 text_color = "#E0E0E0"
 line_color = "#EF5350"
-
-st.write("# Statistics")
 
 
 st.write("### Sets")

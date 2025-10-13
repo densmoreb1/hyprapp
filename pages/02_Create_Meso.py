@@ -2,6 +2,8 @@ from helpers.connection import MySQLDatabase
 from helpers.login import login
 import streamlit as st
 
+st.write("# Create Meso")
+
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
@@ -25,8 +27,6 @@ else:
 groups_sql = conn.execute_query("select distinct muscle_group from exercises order by muscle_group")
 muscle_groups = [g[0] for g in groups_sql]
 
-
-st.write("# Create Meso")
 name = st.text_input("Name of Meso").lower()
 weeks = st.selectbox("Weeks", (4, 5, 6))
 days = st.selectbox("Days per week", (1, 2, 3, 4, 5, 6, 7))

@@ -2,6 +2,8 @@ from helpers.connection import MySQLDatabase
 from helpers.login import login
 import streamlit as st
 
+st.write("# Add Exercise")
+
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
@@ -20,8 +22,6 @@ if "username" in st.session_state and st.session_state["username"] is not None:
 else:
     st.stop()
 
-
-st.write("# Add Exercise")
 
 query = "select distinct muscle_group from exercises order by muscle_group"
 sql = conn.execute_query(query)
