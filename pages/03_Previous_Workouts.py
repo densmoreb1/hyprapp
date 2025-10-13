@@ -2,6 +2,8 @@ from helpers.connection import MySQLDatabase
 from helpers.login import login
 import streamlit as st
 
+st.write("# Previous Workouts")
+
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
@@ -30,7 +32,7 @@ mesos = [g[0] for g in sql]
 # Check if there are no mesos for this user
 if len(mesos) > 0:
     meso_name = st.selectbox("Mesos", mesos)
-    meso_id = conn.execute_query("select meso_id from mesos where name = %s", (meso_name,))[0][0]
+    meso_id = conn.execute_query("select meso_id from mesos where name = %s and user_id = %s", (meso_name, user_id))[0][0]
 else:
     st.write("Looks you have not created a meso yet")
     st.stop()
