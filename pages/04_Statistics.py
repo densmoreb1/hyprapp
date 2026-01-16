@@ -21,7 +21,9 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id, past_mesos, months from users where name = %s", (user_name,))
+    sql = conn.execute_query(
+        "select id, past_mesos, months from users where name = %s", (user_name,)
+    )
     user_id = sql[0][0]
     past_mesos_count = sql[0][1]
     months = sql[0][2]
@@ -35,7 +37,9 @@ line_color = "#EF5350"
 
 
 st.write("### Sets")
-groups_sql = conn.execute_query("select distinct muscle_group from exercises order by muscle_group")
+groups_sql = conn.execute_query(
+    "select distinct muscle_group from exercises order by muscle_group"
+)
 muscle_groups = [g[0] for g in groups_sql]
 muscle_group = st.multiselect("Muscle Groups", muscle_groups)
 
@@ -66,7 +70,10 @@ if len(muscle_group) != 0:
 
         if len(sets_sql) > 0:
             st.write(muscle.capitalize())
-            df = pd.DataFrame(sets_sql, columns=["MesoName", "Week", "muscle_group", "Sets", "meso_id"])
+            df = pd.DataFrame(
+                sets_sql,
+                columns=["MesoName", "Week", "muscle_group", "Sets", "meso_id"],
+            )
 
             fig = px.bar(
                 df,
@@ -77,9 +84,15 @@ if len(muscle_group) != 0:
                 text="Sets",
             )
 
-            fig.update_layout(xaxis_title="Week", yaxis_title="Sets", legend_title="Mesocycle", bargap=0.2, height=500)
+            fig.update_layout(
+                xaxis_title="Week",
+                yaxis_title="Sets",
+                legend_title="Mesocycle",
+                bargap=0.2,
+                height=500,
+            )
             fig.update_traces(textposition="outside")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         else:
             st.write(muscle.capitalize())
@@ -89,11 +102,21 @@ st.write("### Volume")
 
 group = st.selectbox("Muscle Group", muscle_groups, index=None)
 
-sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (group,))
+sql = conn.execute_query(
+    "select name from exercises where muscle_group = %s order by name", (group,)
+)
 exercise_selection = [e[0] for e in sql]
-exercise = st.selectbox("Exercise", exercise_selection, index=None, placeholder="Exercise", label_visibility="collapsed")
+exercise = st.selectbox(
+    "Exercise",
+    exercise_selection,
+    index=None,
+    placeholder="Exercise",
+    label_visibility="collapsed",
+)
 if exercise:
-    exercise_id = conn.execute_query("select id from exercises where name = %s", (exercise,))[0][0]
+    exercise_id = conn.execute_query(
+        "select id from exercises where name = %s", (exercise,)
+    )[0][0]
 
     query = """
             select max(reps), max(weight), date(date_completed)
@@ -111,8 +134,12 @@ if exercise:
     if len(sql) > 0:
         df = pd.DataFrame(sql, columns=["reps", "weight", "date"])
         df["date"] = pd.to_datetime(df["date"])
-        df["volume"] = df["reps"].astype("float") * df["weight"].astype("float")  # Total volume
-        df["label"] = df["weight"].astype(str) + " x " + df["reps"].astype(str)  # e.g. "10 x 165"
+        df["volume"] = df["reps"].astype("float") * df["weight"].astype(
+            "float"
+        )  # Total volume
+        df["label"] = (
+            df["weight"].astype(str) + " x " + df["reps"].astype(str)
+        )  # e.g. "10 x 165"
 
         # Plotly chart
         fig = go.Figure()
@@ -130,7 +157,11 @@ if exercise:
             )
         )
 
-        fig.update_layout(xaxis_title="Date", yaxis_title="Volume (Reps × Weight)", hovermode="x unified")
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Volume (Reps × Weight)",
+            hovermode="x unified",
+        )
         st.plotly_chart(fig)
 
     else:
