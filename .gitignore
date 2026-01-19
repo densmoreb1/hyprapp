@@ -4,4 +4,4 @@ certs/
 .venv
 logs*
 
-pyproject.toml
+.streamlit/config.yml

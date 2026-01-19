@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 140
+
+[tool.pyright]
+reportPossiblyUnboundVariable = false
+reportArgumentType = false
+reportOptionalSubscript = false
+reportOperatorIssue = false
+reportCallIssue = false
+reportOptionalIterable = false
+reportOptionalMemberAccess = false
