@@ -60,21 +60,31 @@ if old_meso_id is None:
             with cols[i]:
                 st.write(f"### Day {i + 1}")
 
-                exercises_per = st.selectbox("How many exercises?", (1, 2, 3, 4, 5, 6, 7, 8, 9), key=f"per{i}")
+                exercises_per = st.selectbox(
+                    label="How many exercises?",
+                    options=(1, 2, 3, 4, 5, 6, 7, 8, 9),
+                    key=f"per{i}{name}",
+                )
 
                 final_exercise_list = []
                 for r in range(exercises_per):
-                    muscle = st.selectbox(f"Exercise {r + 1}", muscle_groups, key=f"muscle{i, r}", index=None, placeholder="Muscle Group")
+                    muscle = st.selectbox(
+                        label=f"Exercise {r + 1}",
+                        options=muscle_groups,
+                        index=None,
+                        key=f"muscle{i}{r}{name}",
+                        placeholder="Muscle Group",
+                    )
 
                     sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (muscle,))
                     exercise_selection = [e[0] for e in sql]
                     exercise = st.selectbox(
-                        "Exercise",
-                        exercise_selection,
-                        key=f"exercise{i, r}",
+                        label="Exercise",
+                        options=exercise_selection,
                         index=None,
-                        placeholder="Exercise",
+                        key=f"exercise{i}{r}{name}",
                         label_visibility="collapsed",
+                        placeholder="Exercise",
                     )
 
                     final_exercise_list.append(exercise)
@@ -108,7 +118,13 @@ else:
                     """
             current_day = conn.execute_query(query, (old_meso_id, user_id, last_week, i))
 
-            exercises_per = st.selectbox("How many exercises?", (1, 2, 3, 4, 5, 6, 7, 8, 9), index=len(current_day) - 1, key=f"per{i}")
+            exercises_per = st.selectbox(
+                label="How many exercises?",
+                options=(1, 2, 3, 4, 5, 6, 7, 8, 9),
+                index=len(current_day) - 1,
+                key=f"per{i}{meso_name}",
+            )
+
             final_exercise_list = []
             for r in range(exercises_per):
                 if r <= len(current_day) - 1:
@@ -125,7 +141,13 @@ else:
                 else:
                     index = None
 
-                muscle = st.selectbox(f"Exercise {r + 1}", muscle_groups, key=f"muscle{i, r}", index=index, placeholder=f"{prev_group}")
+                muscle = st.selectbox(
+                    label=f"Exercise {r + 1}",
+                    options=muscle_groups,
+                    index=index,
+                    key=f"muscle{i}{r}{meso_name}",
+                    placeholder=f"{prev_group}",
+                )
 
                 sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (muscle,))
                 exercise_selection = [e[0] for e in sql]
@@ -136,9 +158,9 @@ else:
                     index = None
 
                 exercise = st.selectbox(
-                    "Exercise",
-                    exercise_selection,
-                    key=f"exercise{i, r}",
+                    label="Exercise",
+                    options=exercise_selection,
+                    key=f"exercise{i}{r}{meso_name}",
                     index=index,
                     placeholder=f"{prev_name}",
                     label_visibility="collapsed",
