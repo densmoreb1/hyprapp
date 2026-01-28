@@ -16,6 +16,7 @@ Python / Streamlit web app
 git clone https://github.com/densmoreb1/hyprapp.git
 cd hyprapp
 mv .env.example .env
+mv .streamlit/config.yml.example .streamlit/config.yml
 ```
 
 - Change the `docker-compose.yaml` file
@@ -52,6 +53,7 @@ Requirements:
 git clone https://github.com/densmoreb1/hyprapp.git
 cd hyprapp
 mv .env.example .env
+mv .streamlit/config.yml.example .streamlit/config.yml
 mkdir server/certs
 cp /path/to/cert/fullchain.pem server/certs/
 cp /path/to/cert/privkey.pem server/certs/
@@ -104,13 +106,3 @@ it asks how pumped the muscle got, how sore it got from the last workout,
 and how much effort it took.
 
 Based on the feedback, it will either add a set to next week's exercise or keep it the same.
-
-## Future Work
-
-Features Coming Soon
-
-- Automated backups
-- Allow for importing a CSV
-- See number of possible sets when creating a meso
-- Score only the last set of the muscle group
-- See this future work list in the app
