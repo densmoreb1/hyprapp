@@ -29,6 +29,10 @@ def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
             order by week_id
             """
     sql = conn.execute_query(query, (user_id, meso_id, group, week_id - 1, week_id))
+
+    if len(sql) < 2:
+        return
+
     last = int(sql[0][0])
     current = int(sql[1][0])
 
