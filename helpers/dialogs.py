@@ -15,6 +15,36 @@ def add_or_not(pump, soreness, effort):
     return False
 
 
+def possible_volume(conn, exercises):
+    sets = {}
+    for day_id, value in exercises.items():
+        for order_id in range(len(value)):
+            exercise_name = value[order_id]
+            query = """
+                    select muscle_group
+                    from exercises
+                    where name = %s
+                    """
+            sql = conn.execute_query(query, (exercise_name,))
+
+            if sql:
+                muscle_group = sql[0][0]
+            else:
+                return
+
+            # On average of 3 sets per exercise per muscle_group
+            if muscle_group in sets:
+                sets[muscle_group] += 3
+            else:
+                sets[muscle_group] = 3
+
+    sets = dict(sorted(sets.items(), key=lambda item: item[1], reverse=True))
+
+    st.write("### Possible Sets")
+    for group, count in sets.items():
+        st.write(f"{group.capitalize()}: {count}")
+
+
 def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
     query = "select muscle_group from exercises where id = %s"
     group = conn.execute_query(query, (exercise_id,))[0][0]

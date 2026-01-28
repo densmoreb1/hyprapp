@@ -1,12 +1,12 @@
 from helpers.connection import MySQLDatabase
-from helpers.login import login
-from helpers.dialogs import exercise_history
-from helpers.dialogs import change_exercise
 from helpers.dialogs import add_exercise
-from helpers.dialogs import records
-from helpers.dialogs import enter_score
-from helpers.dialogs import weekly_volume
+from helpers.dialogs import change_exercise
 from helpers.dialogs import end
+from helpers.dialogs import enter_score
+from helpers.dialogs import exercise_history
+from helpers.dialogs import records
+from helpers.dialogs import weekly_volume
+from helpers.login import login
 import streamlit as st
 
 

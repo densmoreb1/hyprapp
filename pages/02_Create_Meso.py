@@ -1,4 +1,5 @@
 from helpers.connection import MySQLDatabase
+from helpers.dialogs import possible_volume
 from helpers.login import login
 import streamlit as st
 
@@ -146,6 +147,10 @@ else:
                 final_exercise_list.append(exercise)
 
             meso[i] = final_exercise_list
+
+
+# Create toast for possible sets in a week
+possible_volume(conn, meso)
 
 if result and name != "":
 
