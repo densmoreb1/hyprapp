@@ -83,6 +83,7 @@ def end(conn, user_id, meso_id):
     if st.button("Confirm"):
         query = "delete from mesos where user_id = %s and meso_id = %s and completed = 0;"
         conn.execute_query(query, (user_id, meso_id))
+        st.rerun()
 
 
 @st.dialog("Score")
