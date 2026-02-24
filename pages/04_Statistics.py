@@ -21,9 +21,7 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query(
-        "select id, past_mesos, months from users where name = %s", (user_name,)
-    )
+    sql = conn.execute_query("select id, past_mesos, months from users where name = %s", (user_name,))
     user_id = sql[0][0]
     past_mesos_count = sql[0][1]
     months = sql[0][2]
@@ -37,9 +35,7 @@ line_color = "#EF5350"
 
 
 st.write("### Sets")
-groups_sql = conn.execute_query(
-    "select distinct muscle_group from exercises order by muscle_group"
-)
+groups_sql = conn.execute_query("select distinct muscle_group from exercises order by muscle_group")
 muscle_groups = [g[0] for g in groups_sql]
 muscle_group = st.multiselect("Muscle Groups", muscle_groups)
 
@@ -102,9 +98,7 @@ st.write("### Volume")
 
 group = st.selectbox("Muscle Group", muscle_groups, index=None)
 
-sql = conn.execute_query(
-    "select name from exercises where muscle_group = %s order by name", (group,)
-)
+sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (group,))
 exercise_selection = [e[0] for e in sql]
 exercise = st.selectbox(
     "Exercise",
@@ -114,32 +108,36 @@ exercise = st.selectbox(
     label_visibility="collapsed",
 )
 if exercise:
-    exercise_id = conn.execute_query(
-        "select id from exercises where name = %s", (exercise,)
-    )[0][0]
+    exercise_id = conn.execute_query("select id from exercises where name = %s", (exercise,))[0][0]
 
     query = """
-            select max(reps), max(weight), date(date_completed)
-            from mesos
-            where user_id = %s
-                and exercise_id = %s
-                and completed = 1
-                and reps != 0
-                and date_completed >= DATE_SUB(CURDATE(), INTERVAL %s MONTH)
-            group by date(date_completed)
-            order by date(date_completed)
+            SELECT reps, weight, workout_date
+            FROM (
+                SELECT
+                    reps,
+                    weight,
+                    DATE(date_completed) AS workout_date,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY DATE(date_completed)
+                        ORDER BY reps * weight DESC
+                    ) AS rn
+                FROM mesos
+                WHERE user_id = %s
+                    AND exercise_id = %s
+                    AND completed = 1
+                    AND reps != 0
+                    AND date_completed >= DATE_SUB(CURDATE(), INTERVAL %s MONTH)
+            ) ranked
+            WHERE rn = 1
+            ORDER BY workout_date;
             """
     sql = conn.execute_query(query, (user_id, exercise_id, months))
 
     if len(sql) > 0:
         df = pd.DataFrame(sql, columns=["reps", "weight", "date"])
         df["date"] = pd.to_datetime(df["date"])
-        df["volume"] = df["reps"].astype("float") * df["weight"].astype(
-            "float"
-        )  # Total volume
-        df["label"] = (
-            df["weight"].astype(str) + " x " + df["reps"].astype(str)
-        )  # e.g. "10 x 165"
+        df["volume"] = df["reps"].astype("float") * df["weight"].astype("float")  # Total volume
+        df["label"] = df["weight"].astype(str) + " x " + df["reps"].astype(str)  # e.g. "10 x 165"
 
         # Plotly chart
         fig = go.Figure()
