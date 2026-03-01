@@ -13,14 +13,16 @@ import streamlit as st
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
-    authenticator.logout(location="sidebar", key="current_logout")
-    authenticator.login(location="unrendered", key="current_logout")
+    if authenticator:
+        authenticator.logout(location="sidebar", key="current_logout")
+        authenticator.login(location="unrendered", key="current_logout")
 else:
     login()
 
 conn = MySQLDatabase()
 
 
+user_id = None
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
@@ -39,10 +41,12 @@ query = "select distinct name, meso_id from mesos where user_id = %s and (comple
 sql = conn.execute_query(query, (user_id,))
 mesos = [g[0] for g in sql]
 
+mesos = []
 if len(mesos) > 0:
     meso_name = st.selectbox("Mesos", mesos)
     meso_id = conn.execute_query(
-        "select meso_id from mesos where name = %s and user_id = %s", (meso_name, user_id)
+        "select meso_id from mesos where name = %s and user_id = %s",
+        (meso_name, user_id),
     )[0][0]
 else:
     if st.button("Create a new meso here"):
@@ -78,6 +82,12 @@ st.write(f"## Week {week_id + 1} Day {day_id + 1}")
 
 # Main Page
 # Exercise loop
+set_id = 0
+reps = None
+weight = None
+exercise_id = None
+order_id = None
+completed = None
 max_set_count = 0
 for i in range(len(exercises)):
     exercise_name = exercises[i][0]
@@ -90,8 +100,26 @@ for i in range(len(exercises)):
             where m.day_id = %s and m.week_id = %s and m.meso_id = %s and e.name = %s and m.user_id = %s
             order by m.order_id
             """
-    workout = conn.execute_query(query, (day_id, week_id, meso_id, exercise_name, user_id))
-    previous = conn.execute_query(query, (day_id, week_id - 1, meso_id, exercise_name, user_id))
+    workout = conn.execute_query(
+        query,
+        (
+            day_id,
+            week_id,
+            meso_id,
+            exercise_name,
+            user_id,
+        ),
+    )
+    previous = conn.execute_query(
+        query,
+        (
+            day_id,
+            week_id - 1,
+            meso_id,
+            exercise_name,
+            user_id,
+        ),
+    )
 
     # Formatting with columns
     exercise_cols = st.columns([2, 1])
@@ -101,15 +129,31 @@ for i in range(len(exercises)):
         button_cols = st.columns([1, 1, 1])
         with button_cols[0]:
             if st.button("Replace", key=f"swap{exercise_name}"):
-                change_exercise(exercise_name, exercise_id, conn, day_id, meso_id, user_id, week_id)
+                change_exercise(
+                    exercise_name,
+                    exercise_id,
+                    conn,
+                    day_id,
+                    meso_id,
+                    user_id,
+                    week_id,
+                )
         with button_cols[1]:
             if st.button("History", key=f"history{exercise_name}"):
-                exercise_history(exercise_name, exercise_id, user_id, conn, past_mesos_count)
+                exercise_history(
+                    exercise_name,
+                    exercise_id,
+                    user_id,
+                    conn,
+                    past_mesos_count,
+                )
         with button_cols[2]:
             if st.button("Records", key=f"records{exercise_name}"):
                 records(conn, user_id, meso_id, exercise_id, exercise_name)
 
-    max_week_query = "select max(week_id) from mesos where meso_id = %s and user_id = %s"
+    max_week_query = (
+        "select max(week_id) from mesos where meso_id = %s and user_id = %s"
+    )
     max_week_id = conn.execute_query(max_week_query, (meso_id, user_id))[0][0]
     # Set loop
     for i in range(len(workout)):
@@ -190,7 +234,17 @@ for i in range(len(exercises)):
                         where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
                         """
                 conn.execute_query(
-                    query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id)
+                    query,
+                    (
+                        reps,
+                        weight,
+                        set_id,
+                        day_id,
+                        week_id,
+                        exercise_id,
+                        meso_name,
+                        user_id,
+                    ),
                 )
                 if set_id + 1 == len(workout) and keep_score == 1:
                     enter_score(
@@ -221,7 +275,9 @@ for i in range(len(exercises)):
                 where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
                 """
         for i in range(week_id, max_week_id + 1):
-            conn.execute_query(query, (set_id, day_id, i, exercise_id, meso_name, user_id))
+            conn.execute_query(
+                query, (set_id, day_id, i, exercise_id, meso_name, user_id)
+            )
 
         if week_id != 0:
             weekly_volume(conn, user_id, meso_id, exercise_id, week_id)

@@ -12,7 +12,6 @@ class MySQLDatabase:
         }
         self.connection = None
         self.cursor = None
-
         self.connect()
 
     def connect(self):
@@ -23,15 +22,22 @@ class MySQLDatabase:
             print("Error while connecting to MySQL", e)
             self.connection = None
 
-    def execute_query(self, query, params=None):
+    def execute_query(
+        self,
+        query: str,
+        params: tuple,
+    ) -> list:
         try:
-            self.cursor.execute(query, params)
-            if query.strip().upper().startswith("SELECT"):
+            if self.cursor and query.strip().upper().startswith("SELECT"):
+                self.cursor.execute(query, params=params)
                 return self.cursor.fetchall()
             else:
-                self.connection.commit()
+                if self.connection:
+                    self.connection.commit()
+                return []
         except connector.Error as e:
-            return f"Error executing query: {e}"
+            print(f"Error executing query: {e}")
+            return []
 
     def insert_set(
         self,
@@ -67,22 +73,23 @@ class MySQLDatabase:
                 )
                 VALUES
                 (
-                    %s,        -- meso_id
-                    %s,        -- name
-                    %s,        -- user_id
-                    %s,        -- completed
-                    %s,        -- completed_day
-                    %s,        -- set_id
-                    %s,        -- reps
-                    %s,        -- weight
-                    %s,        -- order_id
-                    %s,        -- exercise_id
-                    %s,        -- day_id
-                    %s,        -- week_id
-                    NOW()      -- date_created (current timestamp)
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    NOW()
                 )
                 """
-        self.connection.cursor().execute(
+
+        self.execute_query(
             query,
             (
                 meso_id,
