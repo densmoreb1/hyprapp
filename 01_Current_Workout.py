@@ -24,7 +24,9 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id, keep_score, past_mesos from users where name = %s", (user_name,))
+    sql = conn.execute_query(
+        "select id, keep_score, past_mesos from users where name = %s", (user_name,)
+    )
     user_id = sql[0][0]
     keep_score = sql[0][1]
     past_mesos_count = sql[0][2]
@@ -39,7 +41,9 @@ mesos = [g[0] for g in sql]
 
 if len(mesos) > 0:
     meso_name = st.selectbox("Mesos", mesos)
-    meso_id = conn.execute_query("select meso_id from mesos where name = %s and user_id = %s", (meso_name, user_id))[0][0]
+    meso_id = conn.execute_query(
+        "select meso_id from mesos where name = %s and user_id = %s", (meso_name, user_id)
+    )[0][0]
 else:
     if st.button("Create a new meso here"):
         st.switch_page("pages/02_Create_Meso.py")
@@ -175,15 +179,32 @@ for i in range(len(exercises)):
             )
 
         with cols[3]:
-            if st.button("Complete Set", key=f"completed{exercise_name, set_id}") and weight is not None and reps is not None:
+            if (
+                st.button("Complete Set", key=f"completed{exercise_name, set_id}")
+                and weight is not None
+                and reps is not None
+            ):
                 query = """
                         update mesos
                         set reps = %s, weight = %s, completed = 1, date_completed = now()
                         where set_id = %s and day_id = %s and week_id = %s and exercise_id = %s and name = %s and user_id = %s
                         """
-                conn.execute_query(query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id))
+                conn.execute_query(
+                    query, (reps, weight, set_id, day_id, week_id, exercise_id, meso_name, user_id)
+                )
                 if set_id + 1 == len(workout) and keep_score == 1:
-                    enter_score(conn, meso_id, meso_name, user_id, set_id + 1, order_id, exercise_id, day_id, week_id, max_week_id)
+                    enter_score(
+                        conn,
+                        meso_id,
+                        meso_name,
+                        user_id,
+                        set_id + 1,
+                        order_id,
+                        exercise_id,
+                        day_id,
+                        week_id,
+                        max_week_id,
+                    )
                 else:
                     st.rerun()
 
@@ -208,13 +229,21 @@ for i in range(len(exercises)):
         st.rerun()
 
     if add_set:
-        query = """
-                insert into mesos
-                (meso_id, name, user_id, completed, completed_day, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
-                (%s,        %s,      %s,         0,            0,     %s,   %s,     %s,       %s,          %s,     %s,      %s,      now())
-                """
         for i in range(week_id, max_week_id + 1):
-            conn.execute_query(query, (meso_id, meso_name, user_id, set_id + 1, None, None, order_id, exercise_id, day_id, i))
+            conn.insert_set(
+                meso_id=meso_id,
+                meso_name=meso_name,
+                completed=0,
+                completed_day=0,
+                user_id=user_id,
+                set_id=set_id + 1,
+                reps=None,
+                weight=None,
+                order_id=order_id,
+                exercise_id=exercise_id,
+                day_id=day_id,
+                week_id=i,
+            )
 
         if week_id != 0:
             weekly_volume(conn, user_id, meso_id, exercise_id, week_id)
