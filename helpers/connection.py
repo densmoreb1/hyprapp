@@ -10,8 +10,6 @@ class MySQLDatabase:
             "host": "mysql",
             "database": "fitness",
         }
-        self.connection = None
-        self.cursor = None
         self.connect()
 
     def connect(self):
@@ -20,26 +18,18 @@ class MySQLDatabase:
             self.cursor = self.connection.cursor()
         except connector.Error as e:
             print("Error while connecting to MySQL", e)
-            self.connection = None
+            raise
 
     def execute_query(
         self,
         query: str,
-        params: tuple | None,
+        params: tuple | None = None,
     ) -> list:
-        try:
-            if self.cursor and query.strip().upper().startswith("SELECT"):
-                if params:
-                    self.cursor.execute(query, params=params)
-                else:
-                    self.cursor.execute(query)
-                return self.cursor.fetchall()
-            else:
-                if self.connection:
-                    self.connection.commit()
-                return []
-        except connector.Error as e:
-            print(f"Error executing query: {e}")
+        self.cursor.execute(query, params if params else ())
+        if query.strip().upper().startswith("SELECT"):
+            return self.cursor.fetchall()
+        else:
+            self.connection.commit()
             return []
 
     def insert_set(

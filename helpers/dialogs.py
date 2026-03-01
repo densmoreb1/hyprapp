@@ -121,26 +121,20 @@ def enter_score(
 
         if st.button("Enter"):
             if add_set:
-                query = """
-                        insert into mesos
-                        (meso_id, name, user_id, completed, completed_day, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
-                        (%s,        %s,      %s,         0,            0,     %s,   %s,     %s,       %s,          %s,     %s,      %s,      now())
-                        """
                 for i in range(week_id + 1, max_week_id + 1):
-                    conn.execute_query(
-                        query,
-                        (
-                            meso_id,
-                            meso_name,
-                            user_id,
-                            set_id,
-                            None,
-                            None,
-                            order_id,
-                            exercise_id,
-                            day_id,
-                            i,
-                        ),
+                    conn.insert_set(
+                        meso_id=meso_id,
+                        meso_name=meso_name,
+                        user_id=user_id,
+                        completed=0,
+                        completed_day=0,
+                        set_id=set_id,
+                        reps=None,
+                        weight=None,
+                        order_id=order_id,
+                        exercise_id=exercise_id,
+                        day_id=day_id,
+                        week_id=i,
                     )
             st.rerun()
 
@@ -192,7 +186,7 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
 
 
 @st.dialog("Add exercise")
-def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name):
+def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id):
 
     query = "select distinct muscle_group from exercises order by muscle_group"
     sql = conn.execute_query(query)
@@ -221,20 +215,21 @@ def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name):
     max_order_id = conn.execute_query(query, (user_id, meso_id, day_id, week_id))[0][0]
 
     if st.button("Confirm"):
-        conn.insert_set(
-            meso_id=meso_id,
-            meso_name=meso_name,
-            user_id=user_id,
-            completed=0,
-            completed_day=0,
-            set_id=0,
-            reps=None,
-            weight=None,
-            order_id=max_order_id + 1,
-            exercise_id=exercise_id,
-            day_id=day_id,
-            week_id=week_id,
-        )
+        for i in range(week_id, max_week_id + 1):
+            conn.insert_set(
+                meso_id=meso_id,
+                meso_name=meso_name,
+                user_id=user_id,
+                completed=0,
+                completed_day=0,
+                set_id=0,
+                reps=None,
+                weight=None,
+                order_id=max_order_id + 1,
+                exercise_id=exercise_id,
+                day_id=day_id,
+                week_id=i,
+            )
         st.rerun()
 
 

@@ -52,8 +52,7 @@ sql = conn.execute_query(query, (meso_id, user_id))
 weeks = [d[0] + 1 for d in sql]
 
 if len(weeks) > 0:
-    week_id = st.selectbox("Week", weeks)
-    week_id = -1
+    week_id = st.selectbox("Week", weeks) - 1
 else:
     st.write("You have not completed a workout yet")
     st.stop()
@@ -147,27 +146,19 @@ if st.button("Add a Week"):
         order_id = each_day[2]
         set_id = each_day[3]
 
-        insert_query = """
-                    insert into mesos
-                    (meso_id, name, user_id, completed, completed_day, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
-                    (%s,        %s,      %s,        %s,             %s,    %s,   %s,     %s,       %s,          %s,      %s,     %s,        now())
-                    """
-        conn.execute_query(
-            insert_query,
-            (
-                meso_id,
-                meso_name,
-                user_id,
-                0,
-                0,
-                set_id,
-                None,
-                None,
-                order_id,
-                exercise_id,
-                day_id,
-                max_week_id + 1,
-            ),
+        conn.insert_set(
+            meso_id=meso_id,
+            meso_name=meso_name,
+            user_id=user_id,
+            completed=0,
+            completed_day=0,
+            set_id=set_id,
+            reps=None,
+            weight=None,
+            order_id=order_id,
+            exercise_id=exercise_id,
+            day_id=day_id,
+            week_id=max_week_id + 1,
         )
 
     st.toast(f"Week {max_week_id + 2} added", icon="✅")

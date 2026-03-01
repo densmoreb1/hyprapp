@@ -88,6 +88,7 @@ exercise_id = None
 order_id = None
 completed = None
 max_set_count = 0
+max_week_id = 0
 for i in range(len(exercises)):
     exercise_name = exercises[i][0]
     exercise_id = exercises[i][1]
@@ -303,11 +304,11 @@ for i in range(len(exercises)):
         if week_id != 0:
             weekly_volume(conn, user_id, meso_id, exercise_id, week_id)
 
-        st.rerun()
+        # st.rerun()
 
 
 if st.button("Add Exercise"):
-    add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name)
+    add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id)
 
 # Complete workout - navigate to previous workout page
 st.write("####")
