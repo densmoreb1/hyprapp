@@ -25,9 +25,9 @@ conn = MySQLDatabase()
 user_id = None
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
-    user_name = st.session_state["username"]
+    username = st.session_state["username"]
     sql = conn.execute_query(
-        "select id, keep_score, past_mesos from users where name = %s", (user_name,)
+        "select id, keep_score, past_mesos from users where name = %s", (username,)
     )
     user_id = sql[0][0]
     keep_score = sql[0][1]
@@ -41,7 +41,6 @@ query = "select distinct name, meso_id from mesos where user_id = %s and (comple
 sql = conn.execute_query(query, (user_id,))
 mesos = [g[0] for g in sql]
 
-mesos = []
 if len(mesos) > 0:
     meso_name = st.selectbox("Mesos", mesos)
     meso_id = conn.execute_query(
@@ -289,9 +288,9 @@ for i in range(len(exercises)):
             conn.insert_set(
                 meso_id=meso_id,
                 meso_name=meso_name,
+                user_id=user_id,
                 completed=0,
                 completed_day=0,
-                user_id=user_id,
                 set_id=set_id + 1,
                 reps=None,
                 weight=None,

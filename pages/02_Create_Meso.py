@@ -8,8 +8,9 @@ st.write("# Create Meso")
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
-    authenticator.logout(location="sidebar", key="create_logout")
-    authenticator.login(location="unrendered", key="create_login")
+    if authenticator:
+        authenticator.logout(location="sidebar", key="create_logout")
+        authenticator.login(location="unrendered", key="create_login")
 else:
     login()
 
@@ -19,13 +20,17 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[0][0]
+    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[
+        0
+    ][0]
 else:
     st.stop()
 
 
 # Get the available exercises
-groups_sql = conn.execute_query("select distinct muscle_group from exercises order by muscle_group")
+groups_sql = conn.execute_query(
+    "select distinct muscle_group from exercises order by muscle_group", params=None
+)
 muscle_groups = [g[0] for g in groups_sql]
 
 name = st.text_input("Name of Meso").lower()
@@ -49,7 +54,11 @@ with button_cols[1]:
 
 if reuse:
     meso_name = st.selectbox("Past Mesos", mesos)
-    old_meso_id = conn.execute_query("select meso_id from mesos where name = %s", (meso_name,))[0][0]
+    old_meso_id = conn.execute_query(
+        "select meso_id from mesos where name = %s", (meso_name,)
+    )[0][0]
+else:
+    meso_name = None
 
 
 if old_meso_id is None:
@@ -76,7 +85,10 @@ if old_meso_id is None:
                         placeholder="Muscle Group",
                     )
 
-                    sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (muscle,))
+                    sql = conn.execute_query(
+                        "select name from exercises where muscle_group = %s order by name",
+                        (muscle,),
+                    )
                     exercise_selection = [e[0] for e in sql]
                     exercise = st.selectbox(
                         label="Exercise",
@@ -116,7 +128,9 @@ else:
                     where meso_id = %s and user_id = %s and week_id = %s and day_id = %s
                     order by order_id
                     """
-            current_day = conn.execute_query(query, (old_meso_id, user_id, last_week, i))
+            current_day = conn.execute_query(
+                query, (old_meso_id, user_id, last_week, i)
+            )
 
             exercises_per = st.selectbox(
                 label="How many exercises?",
@@ -149,7 +163,10 @@ else:
                     placeholder=f"{prev_group}",
                 )
 
-                sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (muscle,))
+                sql = conn.execute_query(
+                    "select name from exercises where muscle_group = %s order by name",
+                    (muscle,),
+                )
                 exercise_selection = [e[0] for e in sql]
 
                 if prev_name in exercise_selection:
@@ -176,11 +193,17 @@ possible_volume(conn, meso)
 
 if result and name != "":
 
-    if len(conn.execute_query("select name from mesos where name = %s and user_id = %s", (name, user_id))) > 0:
+    previous_mesos = conn.execute_query(
+        "select name from mesos where name = %s and user_id = %s",
+        (name, user_id),
+    )
+    if len(previous_mesos) > 0:
         st.toast("Meso already exists with name", icon="⚠️")
         st.stop()
 
-    meso_id = conn.execute_query("select max(meso_id) from mesos where user_id = %s", (user_id,))[0][0]
+    meso_id = conn.execute_query(
+        "select max(meso_id) from mesos where user_id = %s", (user_id,)
+    )[0][0]
     if meso_id is None:
         meso_id = 0
     else:
@@ -189,12 +212,22 @@ if result and name != "":
     for week_id in range(weeks):
         for day_id, value in meso.items():
             for order_id in range(len(value)):
-                exercise_id = conn.execute_query("select id from exercises where name = %s", (value[order_id],))[0][0]
-                insert_query = """
-                            insert into mesos
-                            (meso_id, name, user_id, completed, completed_day, set_id, reps, weight, order_id, exercise_id, day_id, week_id, date_created) values
-                            (%s,        %s,      %s,        %s,             %s,    %s,   %s,     %s,       %s,          %s,      %s,     %s,        now())
-                            """
-                conn.execute_query(insert_query, (meso_id, name, user_id, 0, 0, 0, None, None, order_id, exercise_id, day_id, week_id))
+                exercise_id = conn.execute_query(
+                    "select id from exercises where name = %s", (value[order_id],)
+                )[0][0]
+                conn.insert_set(
+                    meso_id=meso_id,
+                    meso_name=meso_name,
+                    user_id=user_id,
+                    completed=0,
+                    completed_day=0,
+                    set_id=0,
+                    reps=None,
+                    weight=None,
+                    order_id=order_id,
+                    exercise_id=exercise_id,
+                    day_id=day_id,
+                    week_id=week_id,
+                )
 
     st.toast("Meso Created", icon="✅")

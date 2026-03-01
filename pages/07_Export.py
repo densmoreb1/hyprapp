@@ -8,8 +8,9 @@ st.write("# Export Workouts")
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
-    authenticator.logout(location="sidebar", key="current_logout")
-    authenticator.login(location="unrendered", key="current_logout")
+    if authenticator:
+        authenticator.logout(location="sidebar", key="current_logout")
+        authenticator.login(location="unrendered", key="current_logout")
 else:
     login()
 
@@ -26,15 +27,21 @@ else:
 
 
 # Get Mesos for the selected User
-query = "select distinct name, meso_id from mesos where user_id = %s order by meso_id desc"
+query = (
+    "select distinct name, meso_id from mesos where user_id = %s order by meso_id desc"
+)
 sql = conn.execute_query(query, (user_id,))
 mesos = ["All"] + [g[0] for g in sql]
 
 # Check if there are no mesos for this user
+meso_id = None
 if len(mesos) > 0:
     meso_name = st.selectbox("Mesos", mesos)
     if meso_name != "All":
-        meso_id = conn.execute_query("select meso_id from mesos where name = %s and user_id = %s", (meso_name, user_id))[0][0]
+        meso_id = conn.execute_query(
+            "select meso_id from mesos where name = %s and user_id = %s",
+            (meso_name, user_id),
+        )[0][0]
 else:
     st.write("Looks you have not created a meso yet")
     st.stop()
@@ -75,7 +82,21 @@ else:
     meso_name = str(meso_name)
     filename = f"{"".join(meso_name.split(" "))}.csv"
 
-df = pd.DataFrame(workouts, columns=["meso_name", "date_completed", "week", "day", "set", "reps", "weight", "exercise_name"])
+df = pd.DataFrame(
+    workouts,
+    columns=pd.Index(
+        [
+            "meso_name",
+            "date_completed",
+            "week",
+            "day",
+            "set",
+            "reps",
+            "weight",
+            "exercise_name",
+        ]
+    ),
+)
 
 st.write("## Data Preview")
 st.dataframe(df.head(20))

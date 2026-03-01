@@ -6,10 +6,12 @@ import yaml
 st.write("# Settings")
 
 # Login
+authenticator = None
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
-    authenticator.logout(location="sidebar", key="setting_logout")
-    authenticator.login(location="unrendered", key="setting_logout")
+    if authenticator:
+        authenticator.logout(location="sidebar", key="setting_logout")
+        authenticator.login(location="unrendered", key="setting_logout")
 else:
     login()
 
@@ -19,7 +21,10 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id, keep_score, past_mesos, months from users where name = %s", (user_name,))
+    sql = conn.execute_query(
+        "select id, keep_score, past_mesos, months from users where name = %s",
+        (user_name,),
+    )
     user_id = sql[0][0]
     keep_score = sql[0][1]
     past_mesos_count = sql[0][2]
@@ -35,9 +40,11 @@ if st.session_state["authentication_status"]:
 
         mapping = {0: "Off", 1: "On"}
         reverse_mapping = {"Off": 0, "On": 1}
-        change = st.segmented_control("Scoring", options=mapping.values(), default=mapping[keep_score])
+        change = st.segmented_control(
+            "Scoring", options=mapping.values(), default=mapping[keep_score]
+        )
 
-        if st.form_submit_button():
+        if st.form_submit_button() and change:
             query = "update users set keep_score = %s where id = %s"
             conn.execute_query(query, (reverse_mapping[change], user_id))
             st.success("Updated scoring")
@@ -66,7 +73,7 @@ if st.session_state["authentication_status"]:
 
     authenticator = st.session_state.get("authenticator")
     try:
-        if authenticator.reset_password(st.session_state["username"]):
+        if authenticator and authenticator.reset_password(st.session_state["username"]):
             st.success("Password modified successfully")
 
             config = st.session_state["config"]
@@ -79,10 +86,12 @@ if st.session_state["authentication_status"]:
 
 if "admin" in st.session_state["roles"]:
     try:
-        email, register_user, register_name = authenticator.register_user()
-        config = st.session_state["config"]
-        with open(".streamlit/config.yml", "w") as file:
-            yaml.dump(config, file, default_flow_style=False)
+        register_user = None
+        if authenticator:
+            email, register_user, register_name = authenticator.register_user()
+            config = st.session_state["config"]
+            with open(".streamlit/config.yml", "w") as file:
+                yaml.dump(config, file, default_flow_style=False)
 
     except Exception as e:
         st.error(e)
@@ -90,7 +99,7 @@ if "admin" in st.session_state["roles"]:
 
     if register_user is not None:
         query = "select name from users"
-        sql = conn.execute_query(query)
+        sql = conn.execute_query(query, params=None)
         names = [u[0] for u in sql]
 
         if register_user not in names:

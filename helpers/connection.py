@@ -25,11 +25,14 @@ class MySQLDatabase:
     def execute_query(
         self,
         query: str,
-        params: tuple,
+        params: tuple | None,
     ) -> list:
         try:
             if self.cursor and query.strip().upper().startswith("SELECT"):
-                self.cursor.execute(query, params=params)
+                if params:
+                    self.cursor.execute(query, params=params)
+                else:
+                    self.cursor.execute(query)
                 return self.cursor.fetchall()
             else:
                 if self.connection:

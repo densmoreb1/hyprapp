@@ -7,8 +7,9 @@ st.write("# Add Exercise")
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
-    authenticator.logout(location="sidebar", key="add_logout")
-    authenticator.login(location="unrendered", key="add_logout")
+    if authenticator:
+        authenticator.logout(location="sidebar", key="add_logout")
+        authenticator.login(location="unrendered", key="add_logout")
 else:
     login()
 
@@ -18,13 +19,15 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[0][0]
+    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[
+        0
+    ][0]
 else:
     st.stop()
 
 
 query = "select distinct muscle_group from exercises order by muscle_group"
-sql = conn.execute_query(query)
+sql = conn.execute_query(query, params=None)
 groups = [u[0] for u in sql]
 
 name = st.text_input("Exercise Name").lower().strip()
@@ -32,7 +35,7 @@ group = st.selectbox("Muscle Group", groups, index=None)
 result = st.button("Create Exercise")
 
 query = "select name from exercises"
-sql = conn.execute_query(query)
+sql = conn.execute_query(query, params=None)
 names = [u[0] for u in sql]
 
 insert_sql = "insert into exercises (name, muscle_group) values (%s, %s)"

@@ -10,8 +10,9 @@ st.write("# Statistics")
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
-    authenticator.logout(location="sidebar", key="stats_logout")
-    authenticator.login(location="unrendered", key="stats_logout")
+    if authenticator:
+        authenticator.logout(location="sidebar", key="stats_logout")
+        authenticator.login(location="unrendered", key="stats_logout")
 else:
     login()
 
@@ -21,7 +22,9 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id, past_mesos, months from users where name = %s", (user_name,))
+    sql = conn.execute_query(
+        "select id, past_mesos, months from users where name = %s", (user_name,)
+    )
     user_id = sql[0][0]
     past_mesos_count = sql[0][1]
     months = sql[0][2]
@@ -35,7 +38,9 @@ line_color = "#EF5350"
 
 
 st.write("### Sets")
-groups_sql = conn.execute_query("select distinct muscle_group from exercises order by muscle_group")
+groups_sql = conn.execute_query(
+    "select distinct muscle_group from exercises order by muscle_group", params=None
+)
 muscle_groups = [g[0] for g in groups_sql]
 muscle_group = st.multiselect("Muscle Groups", muscle_groups)
 
@@ -62,13 +67,15 @@ if len(muscle_group) != 0:
         order by m.meso_id
         """
         params = [user_id, muscle] + meso_ids
-        sets_sql = conn.execute_query(sets_query, params)
+        sets_sql = conn.execute_query(sets_query, tuple(params))
 
         if len(sets_sql) > 0:
             st.write(muscle.capitalize())
             df = pd.DataFrame(
                 sets_sql,
-                columns=["MesoName", "Week", "muscle_group", "Sets", "meso_id"],
+                columns=pd.Index(
+                    ["MesoName", "Week", "muscle_group", "Sets", "meso_id"]
+                ),
             )
 
             fig = px.bar(
@@ -98,7 +105,9 @@ st.write("### Volume")
 
 group = st.selectbox("Muscle Group", muscle_groups, index=None)
 
-sql = conn.execute_query("select name from exercises where muscle_group = %s order by name", (group,))
+sql = conn.execute_query(
+    "select name from exercises where muscle_group = %s order by name", (group,)
+)
 exercise_selection = [e[0] for e in sql]
 exercise = st.selectbox(
     "Exercise",
@@ -108,7 +117,9 @@ exercise = st.selectbox(
     label_visibility="collapsed",
 )
 if exercise:
-    exercise_id = conn.execute_query("select id from exercises where name = %s", (exercise,))[0][0]
+    exercise_id = conn.execute_query(
+        "select id from exercises where name = %s", (exercise,)
+    )[0][0]
 
     query = """
             SELECT reps, weight, workout_date
@@ -134,10 +145,14 @@ if exercise:
     sql = conn.execute_query(query, (user_id, exercise_id, months))
 
     if len(sql) > 0:
-        df = pd.DataFrame(sql, columns=["reps", "weight", "date"])
+        df = pd.DataFrame(sql, columns=pd.Index(["reps", "weight", "date"]))
         df["date"] = pd.to_datetime(df["date"])
-        df["volume"] = df["reps"].astype("float") * df["weight"].astype("float")  # Total volume
-        df["label"] = df["weight"].astype(str) + " x " + df["reps"].astype(str)  # e.g. "10 x 165"
+        df["volume"] = df["reps"].astype("float") * df["weight"].astype(
+            "float"
+        )  # Total volume
+        df["label"] = (
+            df["weight"].astype(str) + " x " + df["reps"].astype(str)
+        )  # e.g. "10 x 165"
 
         # Plotly chart
         fig = go.Figure()
