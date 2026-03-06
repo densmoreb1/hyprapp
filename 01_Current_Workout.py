@@ -304,7 +304,7 @@ for i in range(len(exercises)):
         if week_id != 0:
             weekly_volume(conn, user_id, meso_id, exercise_id, week_id)
 
-        # st.rerun()
+        st.rerun()
 
 
 if st.button("Add Exercise"):
