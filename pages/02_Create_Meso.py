@@ -217,7 +217,7 @@ if result and name != "":
                 )[0][0]
                 conn.insert_set(
                     meso_id=meso_id,
-                    meso_name=meso_name,
+                    meso_name=name,
                     user_id=user_id,
                     completed=0,
                     completed_day=0,

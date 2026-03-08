@@ -335,3 +335,4 @@ if st.button("Complete Workout"):
 
 if st.button("End Meso"):
     end(conn, user_id, meso_id)
+    st.rerun()
