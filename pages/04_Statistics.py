@@ -147,14 +147,14 @@ if exercise:
     if len(sql) > 0:
         df = pd.DataFrame(sql, columns=pd.Index(["reps", "weight", "date"]))
         df["date"] = pd.to_datetime(df["date"])
-        df["volume"] = df["reps"].astype("float") * df["weight"].astype(
-            "float"
-        )  # Total volume
-        df["label"] = (
-            df["weight"].astype(str) + " x " + df["reps"].astype(str)
-        )  # e.g. "10 x 165"
+        df["reps"] = df["reps"].astype("float")
+        df["weight"] = df["weight"].astype("float")
+        df["volume"] = df["reps"] * df["weight"]
 
-        # Plotly chart
+        df["reps"] = df["reps"].astype("str")
+        df["weight"] = df["weight"].astype("str")
+        df["label"] = df["weight"] + " x " + df["reps"]
+
         fig = go.Figure()
 
         fig.add_trace(
@@ -172,9 +172,51 @@ if exercise:
 
         fig.update_layout(
             xaxis_title="Date",
-            yaxis_title="Volume (Reps × Weight)",
+            yaxis_title="Top Set Volume",
             hovermode="x unified",
         )
+        st.plotly_chart(fig)
+
+    else:
+        st.write("None")
+
+    query = """
+            SELECT SUM(reps * weight)
+                , DATE(date_completed)
+            FROM mesos
+            WHERE user_id = %s
+                AND exercise_id = %s
+                AND completed = 1
+                AND reps != 0
+                AND date_completed >= DATE_SUB(CURDATE(), INTERVAL %s MONTH)
+            GROUP BY DATE(date_completed)
+            """
+    sql = conn.execute_query(query, (user_id, exercise_id, months))
+
+    if len(sql) > 0:
+        df = pd.DataFrame(sql, columns=pd.Index(["volume", "date"]))
+        df["date"] = pd.to_datetime(df["date"])
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=df["date"],
+                y=df["volume"],
+                mode="lines+markers",
+                name="Total",
+                marker=dict(color=primary_color, size=10),
+                line=dict(color=line_color, width=2),
+                hoverinfo="x+y+name",
+            )
+        )
+
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Total Volume",
+            hovermode="x unified",
+        )
+
         st.plotly_chart(fig)
 
     else:
