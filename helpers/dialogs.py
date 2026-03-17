@@ -235,7 +235,12 @@ def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id
 
 @st.dialog("Change exercise")
 def change_exercise(
-    exercise_name, exercise_id, conn, day_id, meso_id, user_id, week_id
+    exercise_id,
+    conn,
+    day_id,
+    meso_id,
+    user_id,
+    week_id,
 ):
     group = conn.execute_query(
         "select muscle_group from exercises where id = %s order by muscle_group",
@@ -310,3 +315,75 @@ def exercise_history(exercise_name, exercise_id, user_id, conn, past_mesos_count
                 reps = history_reps_sql[h][0]
                 weight = history_reps_sql[h][1]
                 st.write(f"Weight: {weight} Reps: {reps}")
+
+
+@st.dialog("Swap Places")
+def swap_places(
+    exercise_name,
+    conn,
+    day_id,
+    meso_id,
+    user_id,
+    week_id,
+    order_id,
+):
+    query = """
+        SELECT DISTINCT e.name
+            , order_id
+            , exercise_id
+        FROM mesos m
+        INNER JOIN exercises e ON m.exercise_id = e.id
+        WHERE user_id = %s
+            AND meso_id = %s
+            AND week_id = %s
+            AND day_id = %s
+            AND e.name != %s
+        ORDER BY order_id
+        """
+    sql = conn.execute_query(query, (user_id, meso_id, week_id, day_id, exercise_name))
+    exercises = {e[0]: e[1] for e in sql}
+
+    new_order_name = st.selectbox(
+        label="Select Exercise",
+        options=list(exercises.keys()),
+    )
+
+    new_order_id = exercises[new_order_name]
+
+    if st.button("Confirm"):
+        query = """
+            UPDATE mesos m
+            INNER JOIN exercises e ON m.exercise_id = e.id
+            SET order_id = %s
+            WHERE user_id = %s
+                AND meso_id = %s
+                AND week_id = %s
+                AND day_id = %s
+                AND order_id = %s
+                AND e.name = %s
+            """
+        sql = conn.execute_query(
+            query,
+            (
+                new_order_id,
+                user_id,
+                meso_id,
+                week_id,
+                day_id,
+                order_id,
+                exercise_name,
+            ),
+        )
+        sql = conn.execute_query(
+            query,
+            (
+                order_id,
+                user_id,
+                meso_id,
+                week_id,
+                day_id,
+                new_order_id,
+                new_order_name,
+            ),
+        )
+        st.rerun()

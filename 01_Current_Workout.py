@@ -6,6 +6,7 @@ from helpers.dialogs import enter_score
 from helpers.dialogs import exercise_history
 from helpers.dialogs import records
 from helpers.dialogs import weekly_volume
+from helpers.dialogs import swap_places
 from helpers.login import login
 import streamlit as st
 
@@ -128,9 +129,8 @@ for i in range(len(exercises)):
     with exercise_cols[1]:
         button_cols = st.columns([1, 1, 1])
         with button_cols[0]:
-            if st.button("Replace", key=f"swap{exercise_name}"):
+            if st.button("Replace", key=f"replace{exercise_name}"):
                 change_exercise(
-                    exercise_name,
                     exercise_id,
                     conn,
                     day_id,
@@ -263,11 +263,13 @@ for i in range(len(exercises)):
                     st.rerun()
 
     # Formatting with columns
-    set_cols = st.columns([2, 15])
+    set_cols = st.columns([2, 2, 13])
     with set_cols[0]:
         add_set = st.button("Add set", key=f"add{exercise_name, set_id}")
     with set_cols[1]:
         remove_set = st.button("Remove set", key=f"remove{exercise_name, set_id}")
+    with set_cols[2]:
+        swap_place = st.button("Swap Places", key=f"swap{exercise_name, set_id}")
 
     if remove_set:
         query = """
@@ -305,6 +307,9 @@ for i in range(len(exercises)):
             weekly_volume(conn, user_id, meso_id, exercise_id, week_id)
 
         st.rerun()
+
+    if swap_place:
+        swap_places(exercise_name, conn, day_id, meso_id, user_id, week_id, order_id)
 
 
 if st.button("Add Exercise"):
