@@ -103,11 +103,11 @@ if len(muscle_group) != 0:
 
 st.write("### Volume")
 
-group = st.selectbox("Muscle Group", muscle_groups, index=None)
-
-sql = conn.execute_query(
-    "select name from exercises where muscle_group = %s order by name", (group,)
-)
+if muscle_group:
+    sql = conn.execute_query(
+        "select name from exercises where muscle_group = %s order by name",
+        (muscle_group[-1],),
+    )
 exercise_selection = [e[0] for e in sql]
 exercise = st.selectbox(
     "Exercise",
