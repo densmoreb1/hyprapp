@@ -1,7 +1,5 @@
 __pycache__/
-certs/
 .env
 .venv
-logs*
-
 .streamlit/config.yml
+mysql/
