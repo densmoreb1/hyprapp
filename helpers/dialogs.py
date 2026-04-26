@@ -81,9 +81,21 @@ def end(conn, user_id, meso_id):
     st.write("Warning you are about to end the meso cycle early")
     st.write("This will delete sets that have not been completed")
     if st.button("Confirm"):
-        query = (
-            "delete from mesos where user_id = %s and meso_id = %s and completed = 0"
-        )
+        query = """
+                DELETE
+                FROM mesos
+                WHERE user_id = %s
+                    AND meso_id = %s
+                    AND completed = 0
+                """
+        conn.execute_query(query, (user_id, meso_id))
+
+        query = """
+                UPDATE mesos
+                SET completed_day = 1
+                WHERE user_id = %s
+                    AND meso_id = %s
+                """
         conn.execute_query(query, (user_id, meso_id))
         st.rerun()
 
