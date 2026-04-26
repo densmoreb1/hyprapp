@@ -40,43 +40,6 @@ Login:
 - username: test
 - password: testing123
 
-### Server installation
-
-Requirements:
-
-- Domain name registered to server IP
-- Certificates (you can follow [certbot](https://certbot.eff.org/instructions?ws=nginx&os=pip) instructions
-  - fullchain.pem
-  - privkey.pem
-
-```sh
-git clone https://github.com/densmoreb1/hyprapp.git
-cd hyprapp
-mv .env.example .env
-mv .streamlit/config.yml.example .streamlit/config.yml
-mkdir server/certs
-cp /path/to/cert/fullchain.pem server/certs/
-cp /path/to/cert/privkey.pem server/certs/
-```
-
-The nginx container looks for certificates in the `server/certs` folder.
-However, it is possible to change the `docker-compose.yaml`
-file to point to the directory where the certificates are located.
-
-- Change the `.env` file
-  - change the `DB_PASSWORD`
-
-```sh
-docker compose up -d
-```
-
-Website is be available at `https://yourhost`
-
-Login:
-
-- username: test
-- password: testing123
-
 ## User Management
 
 ### Adding a User
