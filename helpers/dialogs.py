@@ -21,9 +21,9 @@ def possible_volume(conn, exercises):
         for order_id in range(len(value)):
             exercise_name = value[order_id]
             query = """
-                    select muscle_group
-                    from exercises
-                    where name = %s
+                    SELECT muscle_group
+                    FROM exercises
+                    WHERE name = %s
                     """
             sql = conn.execute_query(query, (exercise_name,))
 
@@ -46,17 +46,22 @@ def possible_volume(conn, exercises):
 
 
 def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
-    query = "select muscle_group from exercises where id = %s"
+    query = "SELECT muscle_group FROM exercises WHERE id = %s"
     group = conn.execute_query(query, (exercise_id,))[0][0]
 
     query = """
-            select count(set_id)
-            from mesos m
-            inner join exercises e on m.exercise_id = e.id
-            where user_id = %s and meso_id = %s and muscle_group = %s
-                and (week_id = %s or week_id = %s)
-            group by week_id
-            order by week_id
+            SELECT COUNT(set_id)
+            FROM mesos m
+            INNER JOIN exercises e ON m.exercise_id = e.id
+            WHERE user_id = %s
+                AND meso_id = %s
+                AND muscle_group = %s
+                AND (
+                    week_id = %s
+                    OR week_id = %s
+                    )
+            GROUP BY week_id
+            ORDER BY week_id
             """
     sql = conn.execute_query(query, (user_id, meso_id, group, week_id - 1, week_id))
 
@@ -152,16 +157,19 @@ def enter_score(
 
 
 @st.dialog("Records")
-def records(conn, user_id, meso_id, exercise_id, exercise_name):
-
+def records(conn, user_id, exercise_id, exercise_name):
     # most volume in one set
     query = """
-            select max(weight), max(reps), date_completed
-            from mesos
-            where user_id = %s and completed = 1 and exercise_id = %s
-            group by date_completed, exercise_id
-            order by max(weight) * max(reps) desc
-            limit 1
+            SELECT MAX(weight)
+                , MAX(reps)
+                , date_completed
+            FROM mesos
+            WHERE user_id = %s
+                AND completed = 1
+                AND exercise_id = %s
+            GROUP BY date_completed
+                , exercise_id
+            ORDER BY MAX(weight) * MAX(reps) DESC limit 1
             """
     sql = conn.execute_query(query, (user_id, exercise_id))
     if len(sql) == 0:
@@ -178,12 +186,16 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
 
     # most weight
     query = """
-            select max(weight), date_completed
-            from mesos
-            where user_id = %s and completed = 1 and exercise_id = %s
-            group by date_completed, exercise_id
-            order by max(weight) desc, date_completed desc
-            limit 1
+            SELECT MAX(weight)
+                , date_completed
+            FROM mesos
+            WHERE user_id = %s
+                AND completed = 1
+                AND exercise_id = %s
+            GROUP BY date_completed
+                , exercise_id
+            ORDER BY MAX(weight) DESC
+                , date_completed DESC limit 1
             """
     sql = conn.execute_query(query, (user_id, exercise_id))
     if len(sql) == 0:
@@ -200,14 +212,14 @@ def records(conn, user_id, meso_id, exercise_id, exercise_name):
 @st.dialog("Add exercise")
 def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id):
 
-    query = "select distinct muscle_group from exercises order by muscle_group"
+    query = "SELECT DISTINCT muscle_group FROM exercises ORDER BY muscle_group"
     sql = conn.execute_query(query)
     groups = [u[0] for u in sql]
 
     group = st.selectbox("Muscle Group", groups, index=None)
 
     sql = conn.execute_query(
-        "select name from exercises where muscle_group = %s order by name", (group,)
+        "SELECT name FROM exercises WHERE muscle_group = %s ORDER BY name", (group,)
     )
     exercise_selection = [e[0] for e in sql]
     exercise = st.selectbox(
@@ -220,10 +232,10 @@ def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id
     exercise_id = None
     if exercise:
         exercise_id = conn.execute_query(
-            "select id from exercises where name = %s", (exercise,)
+            "SELECT id FROM exercises WHERE name = %s", (exercise,)
         )[0][0]
 
-    query = "select max(order_id) from mesos where user_id = %s and meso_id = %s and day_id = %s and week_id = %s"
+    query = "SELECT MAX(order_id) FROM mesos WHERE user_id = %s AND meso_id = %s AND day_id = %s AND week_id = %s"
     max_order_id = conn.execute_query(query, (user_id, meso_id, day_id, week_id))[0][0]
 
     if st.button("Confirm"):
@@ -255,11 +267,11 @@ def change_exercise(
     week_id,
 ):
     group = conn.execute_query(
-        "select muscle_group from exercises where id = %s order by muscle_group",
+        "SELECT muscle_group FROM exercises WHERE id = %s ORDER BY muscle_group",
         (exercise_id,),
     )[0][0]
     sql = conn.execute_query(
-        "select name from exercises where muscle_group = %s order by name", (group,)
+        "SELECT name FROM exercises WHERE muscle_group = %s ORDER BY name", (group,)
     )
     exercise_selection = [e[0] for e in sql]
 
@@ -267,31 +279,45 @@ def change_exercise(
         f"{group.capitalize()} Exercises", exercise_selection
     )
     updated_exercise_id = conn.execute_query(
-        "select id from exercises where name = %s", (updated_exercise,)
+        "SELECT id FROM exercises WHERE name = %s", (updated_exercise,)
     )[0][0]
 
     query = """
-            update mesos m
-            set m.exercise_id = %s, m.weight = NULL, m.reps = NULL, m.completed = 0
-            where m.day_id = %s and m.meso_id = %s and m.exercise_id = %s and user_id = %s and week_id >= %s
+            UPDATE mesos m
+            SET m.exercise_id = %s
+                , m.weight = NULL
+                , m.reps = NULL
+                , m.completed = 0
+            WHERE m.meso_id = %s
+                AND m.exercise_id = %s
+                AND user_id = %s
+                AND week_id >= %s
             """
     if st.button("Confirm"):
         conn.execute_query(
-            query, (updated_exercise_id, day_id, meso_id, exercise_id, user_id, week_id)
+            query,
+            (
+                updated_exercise_id,
+                day_id,
+                meso_id,
+                exercise_id,
+                user_id,
+                week_id,
+            ),
         )
         st.rerun()
 
 
 @st.dialog("Exercise history")
-def exercise_history(exercise_name, exercise_id, user_id, conn, past_mesos_count):
+def exercise_history(exercise_id, user_id, conn, past_mesos_count):
     query = """
-            select distinct name, meso_id
-            from mesos
-            where exercise_id = %s
-                and user_id = %s
-                and completed = 1
-            order by meso_id desc
-            limit %s
+            SELECT DISTINCT name
+                , meso_id
+            FROM mesos
+            WHERE exercise_id = %s
+                AND user_id = %s
+                AND completed = 1
+            ORDER BY meso_id DESC limit %s
             """
     sql = conn.execute_query(query, (exercise_id, user_id, past_mesos_count))
     for i in range(len(sql)):
@@ -299,10 +325,15 @@ def exercise_history(exercise_name, exercise_id, user_id, conn, past_mesos_count
         st.markdown(f"## <ins>{history_meso}</ins>", unsafe_allow_html=True)
 
         history = """
-                  select distinct week_id, day_id
-                  from mesos
-                  where exercise_id = %s and user_id = %s and completed = 1 and name = %s
-                  order by week_id desc, day_id desc
+                SELECT DISTINCT week_id
+                    , day_id
+                FROM mesos
+                WHERE exercise_id = %s
+                    AND user_id = %s
+                    AND completed = 1
+                    AND name = %s
+                ORDER BY week_id DESC
+                    , day_id DESC
                   """
         history_sql = conn.execute_query(history, (exercise_id, user_id, history_meso))
 
@@ -310,10 +341,18 @@ def exercise_history(exercise_name, exercise_id, user_id, conn, past_mesos_count
             history_week = history_sql[j][0]
             history_day = history_sql[j][1]
             history_reps = """
-                            select reps, weight, set_id, date_completed
-                            from mesos
-                            where exercise_id = %s and user_id = %s and completed = 1 and name = %s and week_id = %s and day_id = %s
-                            order by set_id
+                            SELECT reps
+                                , weight
+                                , set_id
+                                , date_completed
+                            FROM mesos
+                            WHERE exercise_id = %s
+                                AND user_id = %s
+                                AND completed = 1
+                                AND name = %s
+                                AND week_id = %s
+                                AND day_id = %s
+                            ORDER BY set_id
                             """
             history_reps_sql = conn.execute_query(
                 history_reps,

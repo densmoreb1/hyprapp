@@ -141,7 +141,6 @@ for i in range(len(exercises)):
         with button_cols[1]:
             if st.button("History", key=f"history{exercise_name}"):
                 exercise_history(
-                    exercise_name,
                     exercise_id,
                     user_id,
                     conn,
@@ -149,7 +148,7 @@ for i in range(len(exercises)):
                 )
         with button_cols[2]:
             if st.button("Records", key=f"records{exercise_name}"):
-                records(conn, user_id, meso_id, exercise_id, exercise_name)
+                records(conn, user_id, exercise_id, exercise_name)
 
     max_week_query = (
         "select max(week_id) from mesos where meso_id = %s and user_id = %s"
