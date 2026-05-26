@@ -133,7 +133,6 @@ for i in range(len(exercises)):
                 change_exercise(
                     exercise_id,
                     conn,
-                    day_id,
                     meso_id,
                     user_id,
                     week_id,

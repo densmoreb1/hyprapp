@@ -261,7 +261,6 @@ def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id
 def change_exercise(
     exercise_id,
     conn,
-    day_id,
     meso_id,
     user_id,
     week_id,
@@ -298,7 +297,6 @@ def change_exercise(
             query,
             (
                 updated_exercise_id,
-                day_id,
                 meso_id,
                 exercise_id,
                 user_id,
@@ -408,8 +406,7 @@ def swap_places(
             SET order_id = %s
             WHERE user_id = %s
                 AND meso_id = %s
-                AND week_id = %s
-                AND day_id = %s
+                AND week_id >= %s
                 AND order_id = %s
                 AND e.name = %s
             """
@@ -420,7 +417,6 @@ def swap_places(
                 user_id,
                 meso_id,
                 week_id,
-                day_id,
                 order_id,
                 exercise_name,
             ),
@@ -432,7 +428,6 @@ def swap_places(
                 user_id,
                 meso_id,
                 week_id,
-                day_id,
                 new_order_id,
                 new_order_name,
             ),
