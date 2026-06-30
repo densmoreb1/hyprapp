@@ -19,26 +19,46 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[
-        0
-    ][0]
+    user_id = conn.execute_query(
+        """
+        SELECT id
+        FROM users
+        WHERE name = %s
+        """,
+        (user_name,),
+    )[0][0]
 else:
     st.stop()
 
 
-query = "select distinct muscle_group from exercises order by muscle_group"
+query = """
+        SELECT DISTINCT muscle_group
+        FROM exercises
+        ORDER BY muscle_group
+        """
 sql = conn.execute_query(query, params=None)
 groups = [u[0] for u in sql]
 
-name = st.text_input("Exercise Name").lower().strip()
 group = st.selectbox("Muscle Group", groups, index=None)
+name = st.text_input("Exercise Name").lower().strip()
 result = st.button("Create Exercise")
 
-query = "select name from exercises"
-sql = conn.execute_query(query, params=None)
+query = """
+        SELECT name
+        FROM exercises
+        WHERE muscle_group = %s
+        ORDER BY name
+        """
+sql = conn.execute_query(query, params=(group,))
 names = [u[0] for u in sql]
+insert_sql = """
+            INSERT INTO exercises (name, muscle_group)
+            VALUES (%s, %s)
+            """
 
-insert_sql = "insert into exercises (name, muscle_group) values (%s, %s)"
+st.write("## Existing Exercises")
+for name in names:
+    st.write(name)
 
 if result:
     if name not in names:
