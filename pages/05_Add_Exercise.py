@@ -40,7 +40,7 @@ sql = conn.execute_query(query, params=None)
 groups = [u[0] for u in sql]
 
 group = st.selectbox("Muscle Group", groups, index=None)
-name = st.text_input("Exercise Name").lower().strip()
+enter_name = st.text_input("Exercise Name").lower().strip()
 result = st.button("Create Exercise")
 
 query = """
@@ -61,8 +61,8 @@ for name in names:
     st.write(name)
 
 if result:
-    if name not in names:
-        conn.execute_query(insert_sql, (name, group))
+    if enter_name not in names:
+        conn.execute_query(insert_sql, (enter_name, group))
         st.toast("Exercise created")
     else:
         st.toast("Exercise already exists")
