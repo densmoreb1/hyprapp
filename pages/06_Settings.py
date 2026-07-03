@@ -85,6 +85,37 @@ if st.session_state["authentication_status"]:
 
 
 if "admin" in st.session_state["roles"]:
+    # Exercise naming
+    st.write("### Rename exercises")
+    query = """
+            SELECT DISTINCT muscle_group
+            FROM exercises
+            ORDER BY muscle_group
+            """
+    sql = conn.execute_query(query, params=None)
+    groups = [u[0] for u in sql]
+    group = st.selectbox("Muscle Group", groups, index=None)
+    if group:
+        query = """
+                SELECT name
+                FROM exercises
+                WHERE muscle_group = %s
+                ORDER BY name
+                """
+        sql = conn.execute_query(query, params=(group,))
+        names = [u[0] for u in sql]
+        change_name = st.selectbox("Change This Exercise", names, index=None)
+        change_to = st.text_input("Change To").lower().strip()
+        update_query = """
+                    UPDATE exercises
+                    SET name = %s
+                    WHERE name = %s
+                    """
+        if st.button("Change Name"):
+            conn.execute_query(update_query, params=(change_to, change_name))
+            st.toast("Changed")
+
+    # New user
     try:
         register_user = None
         if authenticator:
