@@ -20,16 +20,27 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[
-        0
-    ][0]
+    sql = conn.execute_query(
+        """
+        SELECT id
+        FROM users
+        WHERE name = %s
+        """,
+        (user_name,),
+    )
+    user_id = sql[0][0]
 else:
     st.stop()
 
 
 # Get the available exercises
 groups_sql = conn.execute_query(
-    "select distinct muscle_group from exercises order by muscle_group", params=None
+    """
+    SELECT DISTINCT muscle_group
+    FROM exercises
+    ORDER BY muscle_group
+    """,
+    params=None,
 )
 muscle_groups = [g[0] for g in groups_sql]
 
@@ -45,7 +56,13 @@ with button_cols[0]:
     result = st.button("Create Meso")
 with button_cols[1]:
     # Get Meso for the selected User
-    query = "select distinct name, meso_id from mesos where user_id = %s order by meso_id desc"
+    query = """
+            SELECT DISTINCT name
+                , meso_id
+            FROM mesos
+            WHERE user_id = %s
+            ORDER BY meso_id DESC
+            """
     sql = conn.execute_query(query, (user_id,))
     mesos = [g[0] for g in sql]
 
@@ -55,7 +72,12 @@ with button_cols[1]:
 if reuse:
     meso_name = st.selectbox("Past Mesos", mesos)
     old_meso_id = conn.execute_query(
-        "select meso_id from mesos where name = %s", (meso_name,)
+        """
+        SELECT meso_id
+        FROM mesos
+        WHERE name = %s
+        """,
+        (meso_name,),
     )[0][0]
 else:
     meso_name = None
@@ -86,7 +108,12 @@ if old_meso_id is None:
                     )
 
                     sql = conn.execute_query(
-                        "select name from exercises where muscle_group = %s order by name",
+                        """
+                        SELECT name
+                        FROM exercises
+                        WHERE muscle_group = %s
+                        ORDER BY name
+                        """,
                         (muscle,),
                     )
                     exercise_selection = [e[0] for e in sql]
@@ -104,14 +131,21 @@ if old_meso_id is None:
                 meso[i] = final_exercise_list
 
 else:
-    query = "select max(week_id) - 1 from mesos where meso_id = %s and user_id = %s"
+    query = """
+            SELECT MAX(week_id) - 1
+            FROM mesos
+            WHERE meso_id = %s
+                AND user_id = %s
+            """
     last_week = conn.execute_query(query, (old_meso_id, user_id))[0][0]
 
     query = """
-            select distinct day_id
-            from mesos m
-            where meso_id = %s and user_id = %s and week_id = %s
-            order by day_id
+            SELECT DISTINCT day_id
+            FROM mesos m
+            WHERE meso_id = %s
+                AND user_id = %s
+                AND week_id = %s
+            ORDER BY day_id
             """
     sql = conn.execute_query(query, (old_meso_id, user_id, last_week))
 
@@ -122,11 +156,17 @@ else:
             st.write(f"### Day {i + 1}")
 
             query = """
-                    select distinct exercise_id, order_id, e.name, e.muscle_group
-                    from mesos m
-                    inner join exercises e on m.exercise_id = e.id
-                    where meso_id = %s and user_id = %s and week_id = %s and day_id = %s
-                    order by order_id
+                    SELECT DISTINCT exercise_id
+                        , order_id
+                        , e.name
+                        , e.muscle_group
+                    FROM mesos m
+                    INNER JOIN exercises e ON m.exercise_id = e.id
+                    WHERE meso_id = %s
+                        AND user_id = %s
+                        AND week_id = %s
+                        AND day_id = %s
+                    ORDER BY order_id
                     """
             current_day = conn.execute_query(
                 query, (old_meso_id, user_id, last_week, i)
@@ -164,7 +204,12 @@ else:
                 )
 
                 sql = conn.execute_query(
-                    "select name from exercises where muscle_group = %s order by name",
+                    """
+                    SELECT name
+                    FROM exercises
+                    WHERE muscle_group = %s
+                    ORDER BY name
+                    """,
                     (muscle,),
                 )
                 exercise_selection = [e[0] for e in sql]
@@ -194,7 +239,12 @@ possible_volume(conn, meso)
 if result and name != "":
 
     previous_mesos = conn.execute_query(
-        "select name from mesos where name = %s and user_id = %s",
+        """
+        SELECT name
+        FROM mesos
+        WHERE name = %s
+            AND user_id = %s
+        """,
         (name, user_id),
     )
     if len(previous_mesos) > 0:
@@ -202,7 +252,12 @@ if result and name != "":
         st.stop()
 
     meso_id = conn.execute_query(
-        "select max(meso_id) from mesos where user_id = %s", (user_id,)
+        """
+        SELECT MAX(meso_id)
+        FROM mesos
+        WHERE user_id = %s
+        """,
+        (user_id,),
     )[0][0]
     if meso_id is None:
         meso_id = 0
@@ -213,7 +268,12 @@ if result and name != "":
         for day_id, value in meso.items():
             for order_id in range(len(value)):
                 exercise_id = conn.execute_query(
-                    "select id from exercises where name = %s", (value[order_id],)
+                    """
+                    SELECT id
+                    FROM exercises
+                    WHERE name = %s
+                    """,
+                    (value[order_id],),
                 )[0][0]
                 conn.insert_set(
                     meso_id=meso_id,
