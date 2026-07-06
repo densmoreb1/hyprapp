@@ -105,15 +105,16 @@ if "admin" in st.session_state["roles"]:
         sql = conn.execute_query(query, params=(group,))
         names = [u[0] for u in sql]
         change_name = st.selectbox("Change This Exercise", names, index=None)
-        change_to = st.text_input("Change To").lower().strip()
-        update_query = """
-                    UPDATE exercises
-                    SET name = %s
-                    WHERE name = %s
-                    """
-        if st.button("Change Name"):
-            conn.execute_query(update_query, params=(change_to, change_name))
-            st.toast("Changed")
+        if change_name:
+            change_to = st.text_input("Change To", value=change_name).lower().strip()
+            update_query = """
+                        UPDATE exercises
+                        SET name = %s
+                        WHERE name = %s
+                        """
+            if st.button("Change Name"):
+                conn.execute_query(update_query, params=(change_to, change_name))
+                st.toast("Changed")
 
     # New user
     try:
