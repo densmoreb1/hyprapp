@@ -94,7 +94,7 @@ if old_meso_id is None:
                 exercises_per = st.selectbox(
                     label="How many exercises?",
                     options=(1, 2, 3, 4, 5, 6, 7, 8, 9),
-                    key=f"per{i}{name}",
+                    key=f"exercise_per_day_{i}",
                 )
 
                 final_exercise_list = []
@@ -103,7 +103,7 @@ if old_meso_id is None:
                         label=f"Exercise {r + 1}",
                         options=muscle_groups,
                         index=None,
-                        key=f"muscle{i}{r}{name}",
+                        key=f"muscle_group_{i}_{r}",
                         placeholder="Muscle Group",
                     )
 
@@ -121,7 +121,7 @@ if old_meso_id is None:
                         label="Exercise",
                         options=exercise_selection,
                         index=None,
-                        key=f"exercise{i}{r}{name}",
+                        key=f"exercise_{i}_{r}",
                         label_visibility="collapsed",
                         placeholder="Exercise",
                     )
@@ -176,7 +176,7 @@ else:
                 label="How many exercises?",
                 options=(1, 2, 3, 4, 5, 6, 7, 8, 9),
                 index=len(current_day) - 1,
-                key=f"per{i}{meso_name}",
+                key=f"exercise_per_day_{i}",
             )
 
             final_exercise_list = []
@@ -199,7 +199,7 @@ else:
                     label=f"Exercise {r + 1}",
                     options=muscle_groups,
                     index=index,
-                    key=f"muscle{i}{r}{meso_name}",
+                    key=f"muscle_group_{i}_{r}",
                     placeholder=f"{prev_group}",
                 )
 
@@ -222,7 +222,7 @@ else:
                 exercise = st.selectbox(
                     label="Exercise",
                     options=exercise_selection,
-                    key=f"exercise{i}{r}{meso_name}",
+                    key=f"exercise_{i}_{r}",
                     index=index,
                     placeholder=f"{prev_name}",
                     label_visibility="collapsed",
