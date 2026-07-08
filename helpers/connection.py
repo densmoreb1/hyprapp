@@ -139,14 +139,22 @@ class MySQLDatabase:
 
     def get_exercise_id(self, name):
         sql = self.execute_query(
-            "SELECT id FROM exercises WHERE name = %s",
+            """
+            SELECT id
+            FROM exercises
+            WHERE name = %s
+            """,
             (name,),
         )
         return sql[0][0] if sql else None
 
     def get_muscle_group_by_exercise_id(self, exercise_id):
         sql = self.execute_query(
-            "SELECT muscle_group FROM exercises WHERE id = %s",
+            """
+            SELECT muscle_group
+            FROM exercises
+            WHERE id = %s
+            """,
             (exercise_id,),
         )
         return sql[0][0] if sql else None

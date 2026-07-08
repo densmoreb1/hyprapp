@@ -42,7 +42,11 @@ if st.session_state["authentication_status"]:
         )
 
         if st.form_submit_button() and change:
-            query = "update users set keep_score = %s where id = %s"
+            query = """
+                    UPDATE users
+                    SET keep_score = %s
+                    WHERE id = %s
+                    """
             conn.execute_query(query, (reverse_mapping[change], user_id))
             st.success("Updated scoring")
 
@@ -62,9 +66,17 @@ if st.session_state["authentication_status"]:
         )
 
         if st.form_submit_button():
-            query = "update users set past_mesos = %s where id = %s"
+            query = """
+                    UPDATE users
+                    SET past_mesos = %s
+                    WHERE id = %s
+                    """
             conn.execute_query(query, (new, user_id))
-            query = "update users set months = %s where id = %s"
+            query = """
+                    UPDATE users
+                    SET months = %s
+                    WHERE id = %s
+                    """
             conn.execute_query(query, (new_months, user_id))
             st.success("Updated view for past mesos")
 
@@ -114,12 +126,18 @@ if "admin" in st.session_state["roles"]:
         st.stop()
 
     if register_user is not None:
-        query = "select name from users"
+        query = """
+                SELECT name
+                FROM users
+                """
         sql = conn.execute_query(query, params=None)
         names = [u[0] for u in sql]
 
         if register_user not in names:
-            query = "insert into users (name) values (%s)"
+            query = """
+                    INSERT INTO users (name)
+                    VALUES (%s)
+                    """
             conn.execute_query(query, (register_user,))
 
             id = conn.get_user_settings(register_user)[0]

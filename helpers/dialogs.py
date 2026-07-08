@@ -227,7 +227,14 @@ def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id
     if exercise:
         exercise_id = conn.get_exercise_id(exercise)
 
-    query = "SELECT MAX(order_id) FROM mesos WHERE user_id = %s AND meso_id = %s AND day_id = %s AND week_id = %s"
+    query = """
+            SELECT MAX(order_id)
+            FROM mesos
+            WHERE user_id = %s
+                AND meso_id = %s
+                AND day_id = %s
+                AND week_id = %s
+            """
     max_order_id = conn.execute_query(query, (user_id, meso_id, day_id, week_id))[0][0]
 
     if st.button("Confirm"):

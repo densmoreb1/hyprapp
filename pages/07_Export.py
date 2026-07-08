@@ -40,7 +40,7 @@ else:
 
 if meso_name == "All":
     sql = f"""
-        select m.name meso_name
+        SELECT m.name meso_name
             , m.date_completed
             , week_id + 1 week
             , day_id + 1 day
@@ -48,16 +48,16 @@ if meso_name == "All":
             , reps
             , weight
             , e.name exercise_name
-        from mesos m
-        inner join exercises e on m.exercise_id = e.id
-        where user_id = %s
-        order by meso_id, week_id, day_id, order_id
+        FROM mesos m
+        INNER JOIN exercises e ON m.exercise_id = e.id
+        WHERE user_id = %s
+        ORDER BY meso_id, week_id, day_id, order_id
         """
     workouts = conn.execute_query(sql, (user_id,))
     filename = "all-workouts.csv"
 else:
     sql = f"""
-        select m.name meso_name
+        SELECT m.name meso_name
             , m.date_completed
             , week_id + 1 week
             , day_id + 1 day
@@ -65,10 +65,11 @@ else:
             , reps
             , weight
             , e.name exercise_name
-        from mesos m
-        inner join exercises e on m.exercise_id = e.id
-        where user_id = %s and meso_id = %s
-        order by meso_id, week_id, day_id, order_id
+        FROM mesos m
+        INNER JOIN exercises e ON m.exercise_id = e.id
+        WHERE user_id = %s
+            AND meso_id = %s
+        ORDER BY meso_id, week_id, day_id, order_id
         """
     workouts = conn.execute_query(sql, (user_id, meso_id))
     meso_name = str(meso_name)
