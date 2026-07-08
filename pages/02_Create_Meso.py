@@ -20,29 +20,13 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query(
-        """
-        SELECT id
-        FROM users
-        WHERE name = %s
-        """,
-        (user_name,),
-    )
-    user_id = sql[0][0]
+    user_id = conn.get_user_settings(user_name)[0]
 else:
     st.stop()
 
 
 # Get the available exercises
-groups_sql = conn.execute_query(
-    """
-    SELECT DISTINCT muscle_group
-    FROM exercises
-    ORDER BY muscle_group
-    """,
-    params=None,
-)
-muscle_groups = [g[0] for g in groups_sql]
+muscle_groups = conn.get_muscle_groups()
 
 name = st.text_input("Name of Meso").lower()
 weeks = st.selectbox("Weeks", (4, 5, 6))
@@ -56,15 +40,7 @@ with button_cols[0]:
     result = st.button("Create Meso")
 with button_cols[1]:
     # Get Meso for the selected User
-    query = """
-            SELECT DISTINCT name
-                , meso_id
-            FROM mesos
-            WHERE user_id = %s
-            ORDER BY meso_id DESC
-            """
-    sql = conn.execute_query(query, (user_id,))
-    mesos = [g[0] for g in sql]
+    mesos = conn.get_meso_names(user_id)
 
     if len(mesos) > 0:
         reuse = st.checkbox("Reuse Meso")
@@ -107,16 +83,7 @@ if old_meso_id is None:
                         placeholder="Muscle Group",
                     )
 
-                    sql = conn.execute_query(
-                        """
-                        SELECT name
-                        FROM exercises
-                        WHERE muscle_group = %s
-                        ORDER BY name
-                        """,
-                        (muscle,),
-                    )
-                    exercise_selection = [e[0] for e in sql]
+                    exercise_selection = conn.get_exercises_by_group(muscle)
                     exercise = st.selectbox(
                         label="Exercise",
                         options=exercise_selection,
@@ -203,16 +170,7 @@ else:
                     placeholder=f"{prev_group}",
                 )
 
-                sql = conn.execute_query(
-                    """
-                    SELECT name
-                    FROM exercises
-                    WHERE muscle_group = %s
-                    ORDER BY name
-                    """,
-                    (muscle,),
-                )
-                exercise_selection = [e[0] for e in sql]
+                exercise_selection = conn.get_exercises_by_group(muscle)
 
                 if prev_name in exercise_selection:
                     index = exercise_selection.index(prev_name)
@@ -267,14 +225,7 @@ if result and name != "":
     for week_id in range(weeks):
         for day_id, value in meso.items():
             for order_id in range(len(value)):
-                exercise_id = conn.execute_query(
-                    """
-                    SELECT id
-                    FROM exercises
-                    WHERE name = %s
-                    """,
-                    (value[order_id],),
-                )[0][0]
+                exercise_id = conn.get_exercise_id(value[order_id])
                 conn.insert_set(
                     meso_id=meso_id,
                     meso_name=name,

@@ -27,19 +27,10 @@ user_id = None
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     username = st.session_state["username"]
-    sql = conn.execute_query(
-        """
-        SELECT id
-            , keep_score
-            , past_mesos
-        FROM users
-        WHERE name = %s
-        """,
-        (username,),
-    )
-    user_id = sql[0][0]
-    keep_score = sql[0][1]
-    past_mesos_count = sql[0][2]
+    user = conn.get_user_settings(username)
+    user_id = user[0]
+    keep_score = user[2]
+    past_mesos_count = user[3]
 else:
     st.stop()
 
@@ -59,15 +50,7 @@ mesos = [g[0] for g in sql]
 
 if len(mesos) > 0:
     meso_name = st.selectbox("Mesos", mesos)
-    meso_id = conn.execute_query(
-        """
-        SELECT meso_id
-        FROM mesos
-        WHERE name = %s
-            AND user_id = %s
-        """,
-        (meso_name, user_id),
-    )[0][0]
+    meso_id = conn.get_meso_id(meso_name, user_id)
 else:
     if st.button("Create a new meso here"):
         st.switch_page("pages/02_Create_Meso.py")

@@ -46,8 +46,7 @@ def possible_volume(conn, exercises):
 
 
 def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
-    query = "SELECT muscle_group FROM exercises WHERE id = %s"
-    group = conn.execute_query(query, (exercise_id,))[0][0]
+    group = conn.get_muscle_group_by_exercise_id(exercise_id)
 
     query = """
             SELECT COUNT(set_id)
@@ -212,16 +211,11 @@ def records(conn, user_id, exercise_id, exercise_name):
 @st.dialog("Add exercise")
 def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id):
 
-    query = "SELECT DISTINCT muscle_group FROM exercises ORDER BY muscle_group"
-    sql = conn.execute_query(query)
-    groups = [u[0] for u in sql]
+    groups = conn.get_muscle_groups()
 
     group = st.selectbox("Muscle Group", groups, index=None)
 
-    sql = conn.execute_query(
-        "SELECT name FROM exercises WHERE muscle_group = %s ORDER BY name", (group,)
-    )
-    exercise_selection = [e[0] for e in sql]
+    exercise_selection = conn.get_exercises_by_group(group)
     exercise = st.selectbox(
         "Exercise",
         exercise_selection,
@@ -231,9 +225,7 @@ def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id
     )
     exercise_id = None
     if exercise:
-        exercise_id = conn.execute_query(
-            "SELECT id FROM exercises WHERE name = %s", (exercise,)
-        )[0][0]
+        exercise_id = conn.get_exercise_id(exercise)
 
     query = "SELECT MAX(order_id) FROM mesos WHERE user_id = %s AND meso_id = %s AND day_id = %s AND week_id = %s"
     max_order_id = conn.execute_query(query, (user_id, meso_id, day_id, week_id))[0][0]
@@ -265,21 +257,13 @@ def change_exercise(
     user_id,
     week_id,
 ):
-    group = conn.execute_query(
-        "SELECT muscle_group FROM exercises WHERE id = %s ORDER BY muscle_group",
-        (exercise_id,),
-    )[0][0]
-    sql = conn.execute_query(
-        "SELECT name FROM exercises WHERE muscle_group = %s ORDER BY name", (group,)
-    )
-    exercise_selection = [e[0] for e in sql]
+    group = conn.get_muscle_group_by_exercise_id(exercise_id)
+    exercise_selection = conn.get_exercises_by_group(group)
 
     updated_exercise = st.selectbox(
         f"{group.capitalize()} Exercises", exercise_selection
     )
-    updated_exercise_id = conn.execute_query(
-        "SELECT id FROM exercises WHERE name = %s", (updated_exercise,)
-    )[0][0]
+    updated_exercise_id = conn.get_exercise_id(updated_exercise)
 
     query = """
             UPDATE mesos m

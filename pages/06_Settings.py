@@ -21,14 +21,11 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query(
-        "select id, keep_score, past_mesos, months from users where name = %s",
-        (user_name,),
-    )
-    user_id = sql[0][0]
-    keep_score = sql[0][1]
-    past_mesos_count = sql[0][2]
-    months = sql[0][3]
+    user = conn.get_user_settings(user_name)
+    user_id = user[0]
+    keep_score = user[2]
+    past_mesos_count = user[3]
+    months = user[4]
 else:
     st.stop()
 
@@ -87,23 +84,10 @@ if st.session_state["authentication_status"]:
 if "admin" in st.session_state["roles"]:
     # Exercise naming
     st.write("### Rename exercises")
-    query = """
-            SELECT DISTINCT muscle_group
-            FROM exercises
-            ORDER BY muscle_group
-            """
-    sql = conn.execute_query(query, params=None)
-    groups = [u[0] for u in sql]
+    groups = conn.get_muscle_groups()
     group = st.selectbox("Muscle Group", groups, index=None)
     if group:
-        query = """
-                SELECT name
-                FROM exercises
-                WHERE muscle_group = %s
-                ORDER BY name
-                """
-        sql = conn.execute_query(query, params=(group,))
-        names = [u[0] for u in sql]
+        names = conn.get_exercises_by_group(group)
         change_name = st.selectbox("Change This Exercise", names, index=None)
         if change_name:
             change_to = st.text_input("Change To", value=change_name).lower().strip()
@@ -138,10 +122,8 @@ if "admin" in st.session_state["roles"]:
             query = "insert into users (name) values (%s)"
             conn.execute_query(query, (register_user,))
 
-            query = "select id from users where name = %s"
-            id = conn.execute_query(query, (register_user,))[0][0]
+            id = conn.get_user_settings(register_user)[0]
             st.toast(f'User "{register_user}" was created with id of {id}')
         else:
-            query = "select id from users where name = %s"
-            id = conn.execute_query(query, (register_user,))[0][0]
+            id = conn.get_user_settings(register_user)[0]
             st.toast(f'User "{register_user}" already exists with id of {id}')

@@ -20,28 +20,20 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id from users where name = %s", (user_name,))
-    user_id = sql[0][0]
+    user_id = conn.get_user_settings(user_name)[0]
 else:
     st.stop()
 
 
 # Get Mesos for the selected User
-query = (
-    "select distinct name, meso_id from mesos where user_id = %s order by meso_id desc"
-)
-sql = conn.execute_query(query, (user_id,))
-mesos = ["All"] + [g[0] for g in sql]
+mesos = ["All"] + conn.get_meso_names(user_id)
 
 # Check if there are no mesos for this user
 meso_id = None
 if len(mesos) > 0:
     meso_name = st.selectbox("Mesos", mesos)
     if meso_name != "All":
-        meso_id = conn.execute_query(
-            "select meso_id from mesos where name = %s and user_id = %s",
-            (meso_name, user_id),
-        )[0][0]
+        meso_id = conn.get_meso_id(meso_name, user_id)
 else:
     st.write("Looks you have not created a meso yet")
     st.stop()

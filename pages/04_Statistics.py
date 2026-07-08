@@ -22,19 +22,10 @@ conn = MySQLDatabase()
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query(
-        """
-        SELECT id,
-           past_mesos,
-           months
-        FROM users
-        WHERE name = %s
-        """,
-        (user_name,),
-    )
-    user_id = sql[0][0]
-    past_mesos_count = sql[0][1]
-    months = sql[0][2]
+    user = conn.get_user_settings(user_name)
+    user_id = user[0]
+    past_mesos_count = user[3]
+    months = user[4]
 else:
     st.stop()
 
@@ -45,14 +36,7 @@ line_color = "#EF5350"
 
 st.write("### Sets")
 
-groups_sql = conn.execute_query(
-    """
-    SELECT DISTINCT muscle_group
-    FROM exercises
-    ORDER BY muscle_group
-    """
-)
-muscle_groups = [g[0] for g in groups_sql]
+muscle_groups = conn.get_muscle_groups()
 muscle_group = st.multiselect("Muscle Groups", muscle_groups)
 
 # Show set increase over each meso
@@ -165,17 +149,9 @@ if len(muscle_group) != 0:
 
 st.write("### Volume")
 
+exercise_selection = []
 if muscle_group:
-    sql = conn.execute_query(
-        """
-        SELECT name
-        FROM exercises
-        WHERE muscle_group = %s
-        ORDER BY name
-        """,
-        (muscle_group[-1],),
-    )
-exercise_selection = [e[0] for e in sql]
+    exercise_selection = conn.get_exercises_by_group(muscle_group[-1])
 exercise = st.selectbox(
     "Exercise",
     exercise_selection,
@@ -184,14 +160,7 @@ exercise = st.selectbox(
     label_visibility="collapsed",
 )
 if exercise:
-    exercise_id = conn.execute_query(
-        """
-        SELECT id
-        FROM exercises
-        WHERE name = %s
-        """,
-        (exercise,),
-    )[0][0]
+    exercise_id = conn.get_exercise_id(exercise)
 
     query = """
             SELECT reps, weight, workout_date
