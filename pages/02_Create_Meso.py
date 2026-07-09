@@ -28,13 +28,30 @@ else:
 # Get the available exercises
 muscle_groups = conn.get_muscle_groups()
 
-name = st.text_input("Name of Meso").lower()
-weeks = st.selectbox("Weeks", (4, 5, 6))
-days = st.selectbox("Days per week", (1, 2, 3, 4, 5, 6, 7))
-old_meso_id = None
+# Load any in-progress draft so selections survive a page refresh
+draft = conn.get_meso_draft(user_id) or {}
+
+weeks_options = (4, 5, 6)
+days_options = (1, 2, 3, 4, 5, 6, 7)
+draft_weeks = draft.get("weeks")
+draft_days = draft.get("days")
+
+name = st.text_input("Name of Meso", value=draft.get("name", None))
+weeks = st.selectbox(
+    "Weeks",
+    weeks_options,
+    index=weeks_options.index(draft_weeks) if draft_weeks in weeks_options else 0,
+)
+days = st.selectbox(
+    "Days per week",
+    days_options,
+    index=days_options.index(draft_days) if draft_days in days_options else 0,
+)
 
 
 reuse = None
+old_meso_id = None
+
 button_cols = st.columns([1, 7])
 with button_cols[0]:
     result = st.button("Create Meso")
@@ -47,148 +64,90 @@ with button_cols[1]:
 
 if reuse:
     meso_name = st.selectbox("Past Mesos", mesos)
-    old_meso_id = conn.execute_query(
-        """
-        SELECT meso_id
-        FROM mesos
-        WHERE name = %s
-        """,
-        (meso_name,),
-    )[0][0]
+    old_meso_id = conn.get_meso_id(meso_name, user_id)
 else:
     meso_name = None
 
 
+# Prefill defaults come from the reused meso, otherwise from the saved draft.
 if old_meso_id is None:
-    meso = {}
-    cols = st.columns(days, border=True)
-    for i in range(len(cols)):
-        if days >= i:
-            with cols[i]:
-                st.write(f"### Day {i + 1}")
-
-                exercises_per = st.selectbox(
-                    label="How many exercises?",
-                    options=(1, 2, 3, 4, 5, 6, 7, 8, 9),
-                    key=f"exercise_per_day_{i}",
-                )
-
-                final_exercise_list = []
-                for r in range(exercises_per):
-                    muscle = st.selectbox(
-                        label=f"Exercise {r + 1}",
-                        options=muscle_groups,
-                        index=None,
-                        key=f"muscle_group_{i}_{r}",
-                        placeholder="Muscle Group",
-                    )
-
-                    exercise_selection = conn.get_exercises_by_group(muscle)
-                    exercise = st.selectbox(
-                        label="Exercise",
-                        options=exercise_selection,
-                        index=None,
-                        key=f"exercise_{i}_{r}",
-                        label_visibility="collapsed",
-                        placeholder="Exercise",
-                    )
-
-                    final_exercise_list.append(exercise)
-
-                meso[i] = final_exercise_list
-
+    prefill = draft.get("loadout", [])
+    num_days = days
+    save_draft = True
 else:
-    query = """
-            SELECT MAX(week_id) - 1
-            FROM mesos
-            WHERE meso_id = %s
-                AND user_id = %s
-            """
-    last_week = conn.execute_query(query, (old_meso_id, user_id))[0][0]
+    prefill = conn.get_meso_loadout(user_id, old_meso_id)
+    num_days = len(prefill)
+    save_draft = False
 
-    query = """
-            SELECT DISTINCT day_id
-            FROM mesos m
-            WHERE meso_id = %s
-                AND user_id = %s
-                AND week_id = %s
-            ORDER BY day_id
-            """
-    sql = conn.execute_query(query, (old_meso_id, user_id, last_week))
+meso = {}
+loadout_to_save = []
+cols = st.columns(num_days, border=True)
+for i in range(len(cols)):
+    with cols[i]:
+        st.write(f"### Day {i + 1}")
 
-    meso = {}
-    cols = st.columns(len(sql), border=True)
-    for i in range(len(cols)):
-        with cols[i]:
-            st.write(f"### Day {i + 1}")
+        day_prefill = prefill[i] if i < len(prefill) else []
 
-            query = """
-                    SELECT DISTINCT exercise_id
-                        , order_id
-                        , e.name
-                        , e.muscle_group
-                    FROM mesos m
-                    INNER JOIN exercises e ON m.exercise_id = e.id
-                    WHERE meso_id = %s
-                        AND user_id = %s
-                        AND week_id = %s
-                        AND day_id = %s
-                    ORDER BY order_id
-                    """
-            current_day = conn.execute_query(
-                query, (old_meso_id, user_id, last_week, i)
+        exercises_per = st.selectbox(
+            label="How many exercises?",
+            options=(1, 2, 3, 4, 5, 6, 7, 8, 9),
+            index=(len(day_prefill) - 1) if day_prefill else 0,
+            key=f"exercise_per_day_{i}",
+        )
+
+        final_exercise_list = []
+        slots = []
+        for r in range(exercises_per):
+            slot = day_prefill[r] if r < len(day_prefill) else {}
+            prev_group = slot.get("group")
+            prev_name = slot.get("exercise")
+
+            if prev_group in muscle_groups:
+                index = muscle_groups.index(prev_group)
+            else:
+                index = None
+
+            muscle = st.selectbox(
+                label=f"Exercise {r + 1}",
+                options=muscle_groups,
+                index=index,
+                key=f"muscle_group_{i}_{r}",
+                placeholder=prev_group or "Muscle Group",
             )
 
-            exercises_per = st.selectbox(
-                label="How many exercises?",
-                options=(1, 2, 3, 4, 5, 6, 7, 8, 9),
-                index=len(current_day) - 1,
-                key=f"exercise_per_day_{i}",
+            exercise_selection = conn.get_exercises_by_group(muscle)
+
+            if prev_name in exercise_selection:
+                index = exercise_selection.index(prev_name)
+            else:
+                index = None
+
+            exercise = st.selectbox(
+                label="Exercise",
+                options=exercise_selection,
+                index=index,
+                key=f"exercise_{i}_{r}",
+                placeholder=prev_name or "Exercise",
+                label_visibility="collapsed",
             )
 
-            final_exercise_list = []
-            for r in range(exercises_per):
-                if r <= len(current_day) - 1:
-                    prev_exercise_id = current_day[r][0]
-                    prev_name = current_day[r][2]
-                    prev_group = current_day[r][3]
-                else:
-                    prev_exercise_id = None
-                    prev_name = None
-                    prev_group = None
+            final_exercise_list.append(exercise)
+            slots.append({"group": muscle, "exercise": exercise})
 
-                if prev_group in muscle_groups:
-                    index = muscle_groups.index(prev_group)
-                else:
-                    index = None
+        meso[i] = final_exercise_list
+        loadout_to_save.append(slots)
 
-                muscle = st.selectbox(
-                    label=f"Exercise {r + 1}",
-                    options=muscle_groups,
-                    index=index,
-                    key=f"muscle_group_{i}_{r}",
-                    placeholder=f"{prev_group}",
-                )
-
-                exercise_selection = conn.get_exercises_by_group(muscle)
-
-                if prev_name in exercise_selection:
-                    index = exercise_selection.index(prev_name)
-                else:
-                    index = None
-
-                exercise = st.selectbox(
-                    label="Exercise",
-                    options=exercise_selection,
-                    key=f"exercise_{i}_{r}",
-                    index=index,
-                    placeholder=f"{prev_name}",
-                    label_visibility="collapsed",
-                )
-
-                final_exercise_list.append(exercise)
-
-            meso[i] = final_exercise_list
+# Persist the in-progress loadout so it survives a page refresh
+if save_draft:
+    conn.save_meso_draft(
+        user_id,
+        {
+            "name": name,
+            "weeks": weeks,
+            "days": days,
+            "loadout": loadout_to_save,
+        },
+    )
 
 
 # Create toast for possible sets in a week
@@ -241,4 +200,5 @@ if result and name != "":
                     week_id=week_id,
                 )
 
+    conn.delete_meso_draft(user_id)
     st.toast("Meso Created", icon="✅")

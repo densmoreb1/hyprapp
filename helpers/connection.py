@@ -1,4 +1,5 @@
 from mysql import connector
+import json
 import os
 
 
@@ -113,7 +114,7 @@ class MySQLDatabase:
             """,
             (name,),
         )
-        return sql[0] if sql else None
+        return sql[0]
 
     def get_muscle_groups(self):
         sql = self.execute_query(
@@ -183,3 +184,71 @@ class MySQLDatabase:
             (user_id,),
         )
         return [row[0] for row in sql]
+
+    def get_meso_loadout(self, user_id, meso_id):
+        sql = self.execute_query(
+            """
+            SELECT day_id
+                , order_id
+                , e.muscle_group
+                , e.name
+            FROM mesos m
+            INNER JOIN exercises e ON m.exercise_id = e.id
+            WHERE meso_id = %s
+                AND user_id = %s
+                AND week_id = (
+                    SELECT MAX(week_id) - 1
+                    FROM mesos
+                    WHERE meso_id = %s
+                        AND user_id = %s
+                )
+            GROUP BY day_id
+                , order_id
+                , e.muscle_group
+                , e.name
+            ORDER BY day_id
+                , order_id
+            """,
+            (meso_id, user_id, meso_id, user_id),
+        )
+        loadout = []
+        for day_id, _order_id, group, name in sql:
+            while len(loadout) <= day_id:
+                loadout.append([])
+            loadout[day_id].append({"group": group, "exercise": name})
+        return loadout
+
+    def get_meso_draft(self, user_id):
+        sql = self.execute_query(
+            """
+            SELECT draft
+            FROM meso_drafts
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+        if not sql or sql[0][0] is None:
+            return None
+        return json.loads(sql[0][0])
+
+    def save_meso_draft(self, user_id, draft):
+        self.execute_query(
+            """
+            INSERT INTO meso_drafts (user_id, draft, updated_at)
+            VALUES (%s, %s, NOW())
+            ON DUPLICATE KEY UPDATE
+                draft = %s
+                , updated_at = NOW()
+            """,
+            (user_id, json.dumps(draft), json.dumps(draft)),
+        )
+
+    def delete_meso_draft(self, user_id):
+        self.execute_query(
+            """
+            DELETE
+            FROM meso_drafts
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
