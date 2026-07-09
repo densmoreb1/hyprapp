@@ -10,7 +10,7 @@ if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
     if authenticator:
         authenticator.logout(location="sidebar", key="current_logout")
-        authenticator.login(location="unrendered", key="current_logout")
+        authenticator.login(location="unrendered", key="current_login")
 else:
     login()
 
@@ -39,7 +39,7 @@ else:
     st.stop()
 
 if meso_name == "All":
-    sql = f"""
+    sql = """
         SELECT m.name meso_name
             , m.date_completed
             , week_id + 1 week
@@ -56,7 +56,7 @@ if meso_name == "All":
     workouts = conn.execute_query(sql, (user_id,))
     filename = "all-workouts.csv"
 else:
-    sql = f"""
+    sql = """
         SELECT m.name meso_name
             , m.date_completed
             , week_id + 1 week

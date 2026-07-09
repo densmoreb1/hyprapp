@@ -9,7 +9,7 @@ if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
     if authenticator:
         authenticator.logout(location="sidebar", key="add_logout")
-        authenticator.login(location="unrendered", key="add_logout")
+        authenticator.login(location="unrendered", key="add_login")
 else:
     login()
 
