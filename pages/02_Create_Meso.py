@@ -1,6 +1,7 @@
 from helpers.connection import MySQLDatabase
 from helpers.dialogs import possible_volume
 from helpers.login import login
+import random
 import streamlit as st
 
 st.write("# Create Meso")
@@ -52,13 +53,15 @@ days = st.selectbox(
 reuse = None
 old_meso_id = None
 
-button_cols = st.columns([1, 7])
+button_cols = st.columns([1, 1, 1, 5])
 with button_cols[0]:
     result = st.button("Create Meso")
 with button_cols[1]:
-    # Get Meso for the selected User
+    randomize = st.button("Randomize")
+with button_cols[2]:
+    reset = st.button("Reset")
+with button_cols[3]:
     mesos = conn.get_meso_names(user_id)
-
     if len(mesos) > 0:
         reuse = st.checkbox("Reuse Meso")
 
@@ -78,6 +81,28 @@ else:
     prefill = conn.get_meso_loadout(user_id, old_meso_id)
     num_days = len(prefill)
     save_draft = False
+
+
+if randomize:
+    for i in range(num_days):
+        per = st.session_state.get(f"exercise_per_day_{i}", 1)
+        for r in range(per):
+            muscle_key = f"muscle_group_{i}_{r}"
+            exercise_key = f"exercise_{i}_{r}"
+
+            muscle = st.session_state.get(muscle_key)
+            if not muscle:  # only empty boxes
+                muscle = random.choice(muscle_groups)
+                st.session_state[muscle_key] = muscle
+
+            if not st.session_state.get(exercise_key):
+                options = conn.get_exercises_by_group(muscle)
+                if options:
+                    st.session_state[exercise_key] = random.choice(options)
+
+if reset:
+    conn.delete_meso_draft(user_id)
+    st.rerun()
 
 meso = {}
 loadout_to_save = []
