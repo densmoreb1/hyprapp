@@ -72,7 +72,6 @@ else:
     meso_name = None
 
 
-# Prefill defaults come from the reused meso, otherwise from the saved draft.
 if old_meso_id is None:
     prefill = draft.get("loadout", [])
     num_days = days
@@ -83,12 +82,21 @@ else:
     save_draft = False
 
 
+# use session to reset the boxes when swapping mesos or reset
+st.session_state.setdefault("_loaded_meso_id", old_meso_id)
+st.session_state.setdefault("_loadout_version", 0)
+if old_meso_id != st.session_state["_loaded_meso_id"]:
+    st.session_state["_loaded_meso_id"] = old_meso_id
+    st.session_state["_loadout_version"] += 1
+version = st.session_state["_loadout_version"]
+
+
 if randomize:
     for i in range(num_days):
-        per = st.session_state.get(f"exercise_per_day_{i}", 1)
+        per = st.session_state.get(f"exercise_per_day_{version}_{i}", 1)
         for r in range(per):
-            muscle_key = f"muscle_group_{i}_{r}"
-            exercise_key = f"exercise_{i}_{r}"
+            muscle_key = f"muscle_group_{version}_{i}_{r}"
+            exercise_key = f"exercise_{version}_{i}_{r}"
 
             muscle = st.session_state.get(muscle_key)
             if not muscle:  # only empty boxes
@@ -101,6 +109,7 @@ if randomize:
                     st.session_state[exercise_key] = random.choice(options)
 
 if reset:
+    st.session_state["_loadout_version"] += 1
     conn.delete_meso_draft(user_id)
     st.rerun()
 
@@ -117,7 +126,7 @@ for i in range(len(cols)):
             label="How many exercises?",
             options=(1, 2, 3, 4, 5, 6, 7, 8, 9),
             index=(len(day_prefill) - 1) if day_prefill else 0,
-            key=f"exercise_per_day_{i}",
+            key=f"exercise_per_day_{version}_{i}",
         )
 
         final_exercise_list = []
@@ -136,7 +145,7 @@ for i in range(len(cols)):
                 label=f"Exercise {r + 1}",
                 options=muscle_groups,
                 index=index,
-                key=f"muscle_group_{i}_{r}",
+                key=f"muscle_group_{version}_{i}_{r}",
                 placeholder=prev_group or "Muscle Group",
             )
 
@@ -151,7 +160,7 @@ for i in range(len(cols)):
                 label="Exercise",
                 options=exercise_selection,
                 index=index,
-                key=f"exercise_{i}_{r}",
+                key=f"exercise_{version}_{i}_{r}",
                 placeholder=prev_name or "Exercise",
                 label_visibility="collapsed",
             )
@@ -162,7 +171,6 @@ for i in range(len(cols)):
         meso[i] = final_exercise_list
         loadout_to_save.append(slots)
 
-# Persist the in-progress loadout so it survives a page refresh
 if save_draft:
     conn.save_meso_draft(
         user_id,
