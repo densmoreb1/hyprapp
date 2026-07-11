@@ -1,4 +1,4 @@
-from helpers.connection import MySQLDatabase
+from helpers.connection import get_db
 from helpers.login import login
 import pandas as pd
 import streamlit as st
@@ -14,7 +14,7 @@ if st.session_state.get("authentication_status"):
 else:
     login()
 
-conn = MySQLDatabase()
+conn = get_db()
 
 
 # Get the current user
@@ -72,7 +72,6 @@ else:
         ORDER BY meso_id, week_id, day_id, order_id
         """
     workouts = conn.execute_query(sql, (user_id, meso_id))
-    meso_name = str(meso_name)
     filename = f"{"".join(meso_name.split(" "))}.csv"
 
 df = pd.DataFrame(

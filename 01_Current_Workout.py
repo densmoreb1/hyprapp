@@ -1,4 +1,4 @@
-from helpers.connection import MySQLDatabase
+from helpers.connection import get_db
 from helpers.dialogs import add_exercise
 from helpers.dialogs import change_exercise
 from helpers.dialogs import end
@@ -20,7 +20,7 @@ if st.session_state.get("authentication_status"):
 else:
     login()
 
-conn = MySQLDatabase()
+conn = get_db()
 
 
 user_id = None

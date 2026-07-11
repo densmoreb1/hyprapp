@@ -1,4 +1,4 @@
-from helpers.connection import MySQLDatabase
+from helpers.connection import get_db
 from helpers.dialogs import possible_volume
 from helpers.login import login
 import random
@@ -15,7 +15,7 @@ if st.session_state.get("authentication_status"):
 else:
     login()
 
-conn = MySQLDatabase()
+conn = get_db()
 
 
 # Get the current user
@@ -186,7 +186,7 @@ if save_draft:
 # Create toast for possible sets in a week
 possible_volume(conn, meso)
 
-if result and name != "":
+if result and name.strip():
 
     previous_mesos = conn.execute_query(
         """

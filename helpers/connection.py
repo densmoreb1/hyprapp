@@ -1,6 +1,12 @@
 from mysql import connector
 import json
 import os
+import streamlit as st
+
+
+@st.cache_resource
+def get_db():
+    return MySQLDatabase()
 
 
 class MySQLDatabase:
@@ -16,7 +22,6 @@ class MySQLDatabase:
     def connect(self):
         try:
             self.connection = connector.connect(**self.config)
-            self.cursor = self.connection.cursor()
         except connector.Error as e:
             print("Error while connecting to MySQL", e)
             raise
@@ -26,12 +31,17 @@ class MySQLDatabase:
         query: str,
         params: tuple | None = None,
     ) -> list:
-        self.cursor.execute(query, params if params else ())
-        if query.strip().upper().startswith("SELECT"):
-            return self.cursor.fetchall()
-        else:
+        # The cached connection can go stale (MySQL wait_timeout); reconnect if so.
+        self.connection.ping(reconnect=True, attempts=3, delay=1)
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(query, params if params else ())
+            if query.strip().upper().startswith("SELECT"):
+                return cursor.fetchall()
             self.connection.commit()
             return []
+        finally:
+            cursor.close()
 
     def insert_set(
         self,
