@@ -1,5 +1,6 @@
 import streamlit as st
 import datetime
+import random
 import time
 
 
@@ -110,12 +111,10 @@ def enter_score(
     meso_id,
     meso_name,
     user_id,
-    set_id,
-    order_id,
-    exercise_id,
     day_id,
     week_id,
     max_week_id,
+    group_exercises,
 ):
 
     st.write("Enter scores")
@@ -123,7 +122,9 @@ def enter_score(
     mapping = {"None": 1, "Low": 2, "Medium": 3, "High": 4}
     if week_id != 0:
         soreness = st.segmented_control(
-            "Soreness (from last workout)", options=mapping.keys(), key="sore"
+            "Soreness (from last workout)",
+            options=mapping.keys(),
+            key="sore",
         )
     else:
         soreness = "None"
@@ -137,6 +138,30 @@ def enter_score(
 
         if st.button("Enter"):
             if add_set:
+                chosen = random.choice(group_exercises)
+                exercise_id = chosen["exercise_id"]
+                order_id = chosen["order_id"]
+
+                max_set = conn.execute_query(
+                    """
+                    SELECT MAX(set_id)
+                    FROM mesos
+                    WHERE meso_id = %s
+                        AND user_id = %s
+                        AND day_id = %s
+                        AND week_id = %s
+                        AND exercise_id = %s
+                    """,
+                    (
+                        meso_id,
+                        user_id,
+                        day_id,
+                        week_id,
+                        exercise_id,
+                    ),
+                )[0][0]
+                set_id = (max_set + 1) if max_set is not None else 0
+
                 for i in range(week_id + 1, max_week_id + 1):
                     conn.insert_set(
                         meso_id=meso_id,

@@ -86,6 +86,7 @@ query = """
         SELECT DISTINCT e.name
             , e.id
             , m.order_id
+            , e.muscle_group
         FROM mesos m
         INNER JOIN exercises e ON m.exercise_id = e.id
         WHERE m.day_id = %s
@@ -95,6 +96,12 @@ query = """
         ORDER BY m.order_id
         """
 exercises = conn.execute_query(query, (day_id, week_id, meso_id, user_id))
+
+group_exercises = {}
+for ex in exercises:
+    group_exercises.setdefault(ex[3], []).append(
+        {"exercise_id": ex[1], "order_id": ex[2]}
+    )
 
 
 # Start
@@ -114,6 +121,7 @@ max_week_id = 0
 for i in range(len(exercises)):
     exercise_name = exercises[i][0]
     exercise_id = exercises[i][1]
+    exercise_group = exercises[i][3]
 
     query = """
             SELECT m.set_id
@@ -286,18 +294,19 @@ for i in range(len(exercises)):
                         user_id,
                     ),
                 )
-                if set_id + 1 == len(workout) and keep_score == 1:
+                last_in_group = (
+                    group_exercises[exercise_group][-1]["exercise_id"] == exercise_id
+                )
+                if set_id + 1 == len(workout) and keep_score == 1 and last_in_group:
                     enter_score(
                         conn,
                         meso_id,
                         meso_name,
                         user_id,
-                        set_id + 1,
-                        order_id,
-                        exercise_id,
                         day_id,
                         week_id,
                         max_week_id,
+                        group_exercises[exercise_group],
                     )
                 else:
                     st.rerun()
