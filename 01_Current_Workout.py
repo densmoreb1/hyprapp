@@ -174,6 +174,7 @@ for i in range(len(exercises)):
                     conn,
                     meso_id,
                     user_id,
+                    day_id,
                     week_id,
                 )
         with button_cols[1]:

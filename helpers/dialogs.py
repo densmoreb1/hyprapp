@@ -287,6 +287,7 @@ def change_exercise(
     conn,
     meso_id,
     user_id,
+    day_id,
     week_id,
 ):
     group = conn.get_muscle_group_by_exercise_id(exercise_id)
@@ -306,6 +307,7 @@ def change_exercise(
             WHERE m.meso_id = %s
                 AND m.exercise_id = %s
                 AND user_id = %s
+                AND day_id = %s
                 AND week_id >= %s
             """
     if st.button("Confirm"):
@@ -316,6 +318,7 @@ def change_exercise(
                 meso_id,
                 exercise_id,
                 user_id,
+                day_id,
                 week_id,
             ),
         )
