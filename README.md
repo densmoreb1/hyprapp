@@ -10,22 +10,15 @@ Python / Streamlit web app
 
 ## Setup
 
-### Local Quickstart (without certificates)
+### Quickstart
 
 ```sh
 git clone https://github.com/densmoreb1/hyprapp.git
 cd hyprapp
-mv .env.example .env
-mv .streamlit/config.yml.example .streamlit/config.yml
+cp .env.example .env
+cp .streamlit/config.yml.example .streamlit/config.yml
 ```
 
-- Change the `docker-compose.yaml` file
-  - change Streamlit port to open server side 8501
-    ```yaml
-    ports:
-      - 8501:8501 # Map Streamlit's default port
-    ```
-  - comment out the nginx section
 - Change the `.env` file
   - change the `DB_PASSWORD`
 
@@ -44,8 +37,8 @@ Login:
 
 ### Adding a User
 
-The web app uses [`streamlit-authenticator`](https://github.com/mkhorasani/Streamlit-Authenticator).
-It is a good idea to understand how the `.streamlit/config.yml` file works.
+The web app uses [`streamlit-authenticator`](https://github.com/mkhorasani/Streamlit-Authenticator)
+and `.streamlit/config.yml` to control users.
 
 To add a username:
 
@@ -62,10 +55,11 @@ and the `config.yml` is updated with a hashed password.
   - `docker exec -it hypertrophy-mysql mysql -p -e "delete from fitness.users where name = '{name}'"`
 - Delete the user from `config.yml`
 
-## Scoring (Work in progress)
+## Scoring
 
-There is a user setting called Scoring. After the last set of each exercise,
+There is a user setting called Scoring. After the last set of each muscle group,
 it asks how pumped the muscle got, how sore it got from the last workout,
 and how much effort it took.
 
-Based on the feedback, it will either add a set to next week's exercise or keep it the same.
+Based on the feedback, it will either add a set to next week's exercise or
+keep it the same.
