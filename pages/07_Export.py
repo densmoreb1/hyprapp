@@ -31,11 +31,11 @@ mesos = ["All"] + conn.get_meso_names(user_id)
 # Check if there are no mesos for this user
 meso_id = None
 if len(mesos) > 0:
-    meso_name = st.selectbox("Mesos", mesos)
+    meso_name = st.selectbox("Programs", mesos)
     if meso_name != "All":
         meso_id = conn.get_meso_id(meso_name, user_id)
 else:
-    st.write("Looks you have not created a meso yet")
+    st.write("Looks you have not created a program yet")
     st.stop()
 
 if meso_name == "All":

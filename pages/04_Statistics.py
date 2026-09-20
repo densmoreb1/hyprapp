@@ -82,22 +82,22 @@ if len(muscle_group) != 0:
             df = pd.DataFrame(
                 sets_sql,
                 columns=pd.Index(
-                    ["MesoName", "Week", "muscle_group", "Sets", "meso_id"]
+                    ["Program", "Week", "muscle_group", "Sets", "meso_id"]
                 ),
             )
             fig = px.bar(
                 df,
                 x="Week",
                 y="Sets",
-                color="MesoName",
+                color="Program",
                 barmode="group",  # or "stack"
                 text="Sets",
             )
 
             fig.update_layout(
                 xaxis_title="Week",
-                yaxis_title="Sets over each Meso week",
-                legend_title="Mesocycle",
+                yaxis_title="Sets over each Program week",
+                legend_title="Program",
                 bargap=0.2,
                 height=500,
             )

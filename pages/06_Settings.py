@@ -54,7 +54,7 @@ if st.session_state["authentication_status"]:
         st.write("### User Statistics")
 
         new = st.number_input(
-            "Number of past mesos to show:",
+            "Number of past programs to show:",
             value=past_mesos_count,
             step=1,
         )
@@ -78,7 +78,7 @@ if st.session_state["authentication_status"]:
                     WHERE id = %s
                     """
             conn.execute_query(query, (new_months, user_id))
-            st.success("Updated view for past mesos")
+            st.success("Updated view for past programs")
 
     authenticator = st.session_state.get("authenticator")
     try:

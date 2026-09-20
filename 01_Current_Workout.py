@@ -10,7 +10,6 @@ from helpers.dialogs import swap_places
 from helpers.login import login
 import streamlit as st
 
-
 # Login
 if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
@@ -49,11 +48,11 @@ sql = conn.execute_query(query, (user_id,))
 mesos = [g[0] for g in sql]
 
 if len(mesos) > 0:
-    meso_name = st.selectbox("Mesos", mesos)
+    meso_name = st.selectbox("Programs", mesos)
     meso_id = conn.get_meso_id(meso_name, user_id)
 else:
-    if st.button("Create a new meso here"):
-        st.switch_page("pages/02_Create_Meso.py")
+    if st.button("Create a new Program here"):
+        st.switch_page("pages/02_Create_Program.py")
     st.stop()
 
 
@@ -401,5 +400,5 @@ if st.button("Complete Workout"):
         st.toast("Complete all sets", icon="⚠️")
 
 
-if st.button("End Meso"):
+if st.button("End Program"):
     end(conn, user_id, meso_id)

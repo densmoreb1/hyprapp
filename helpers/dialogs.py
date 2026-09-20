@@ -81,9 +81,9 @@ def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
     time.sleep(1)
 
 
-@st.dialog("End Meso")
+@st.dialog("End Program")
 def end(conn, user_id, meso_id):
-    st.write("Warning you are about to end the meso cycle early")
+    st.write("Warning you are about to end the program early")
     st.write("This will delete sets that have not been completed")
     if st.button("Confirm"):
         query = """
