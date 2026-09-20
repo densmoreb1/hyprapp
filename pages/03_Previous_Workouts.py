@@ -30,10 +30,10 @@ mesos = conn.get_meso_names(user_id)
 
 # Check if there are no mesos for this user
 if len(mesos) > 0:
-    meso_name = st.selectbox("Mesos", mesos)
+    meso_name = st.selectbox("Programs", mesos)
     meso_id = conn.get_meso_id(meso_name, user_id)
 else:
-    st.write("Looks you have not created a meso yet")
+    st.write("Looks you have not created a program yet")
     st.stop()
 
 
@@ -199,7 +199,7 @@ if st.button("Add a Week"):
 
     st.toast(f"Week {max_week_id + 2} added", icon="✅")
 
-if st.button("Delete Meso"):
+if st.button("Delete Program"):
     query = """
             DELETE
             FROM mesos

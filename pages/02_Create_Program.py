@@ -4,7 +4,7 @@ from helpers.login import login
 import random
 import streamlit as st
 
-st.write("# Create Meso")
+st.write("# Create Program")
 
 # Login
 if st.session_state.get("authentication_status"):
@@ -37,7 +37,7 @@ days_options = (1, 2, 3, 4, 5, 6, 7)
 draft_weeks = draft.get("weeks")
 draft_days = draft.get("days")
 
-name = st.text_input("Name of Meso", value=draft.get("name", None))
+name = st.text_input("Name of Program", value=draft.get("name", None))
 weeks = st.selectbox(
     "Weeks",
     weeks_options,
@@ -55,7 +55,7 @@ old_meso_id = None
 
 button_cols = st.columns([1, 1, 1, 5])
 with button_cols[0]:
-    result = st.button("Create Meso")
+    result = st.button("Create Program")
 with button_cols[1]:
     randomize = st.button("Randomize")
 with button_cols[2]:
@@ -63,10 +63,10 @@ with button_cols[2]:
 with button_cols[3]:
     mesos = conn.get_meso_names(user_id)
     if len(mesos) > 0:
-        reuse = st.checkbox("Reuse Meso")
+        reuse = st.checkbox("Reuse Program")
 
 if reuse:
-    meso_name = st.selectbox("Past Mesos", mesos)
+    meso_name = st.selectbox("Past Programs", mesos)
     old_meso_id = conn.get_meso_id(meso_name, user_id)
 else:
     meso_name = None
@@ -198,7 +198,7 @@ if result and name.strip():
         (name, user_id),
     )
     if len(previous_mesos) > 0:
-        st.toast("Meso already exists with name", icon="⚠️")
+        st.toast("Program already exists with name", icon="⚠️")
         st.stop()
 
     meso_id = conn.execute_query(
@@ -234,4 +234,4 @@ if result and name.strip():
                 )
 
     conn.delete_meso_draft(user_id)
-    st.toast("Meso Created", icon="✅")
+    st.toast("Program Created", icon="✅")
