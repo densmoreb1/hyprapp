@@ -13,25 +13,43 @@ Python / Streamlit web app
 ### Quickstart
 
 ```sh
-git clone https://github.com/densmoreb1/hyprapp.git
-cd hyprapp
-cp .env.example .env
-cp .streamlit/config.yml.example .streamlit/config.yml
+nix run github:densmoreb1/hyprapp
 ```
 
-- Change the `.env` file
-  - change the `DB_PASSWORD`
-
-```sh
-docker compose up -d
-```
-
-Website is be available at `http://localhost:8501`
+Website is available at `http://localhost:8501`
 
 Login:
 
 - username: test
 - password: testing123
+
+### Development
+
+```sh
+git clone https://github.com/densmoreb1/hyprapp.git
+cd hyprapp
+nix develop
+streamlit run 01_Current_Workout.py
+```
+
+The dev shell also provides `sqlite3`, `black` and `sqlfluff`.
+
+## Database
+
+SQLite. Everything the app writes lives in one directory, set by
+`HYPRAPP_STATE_DIR`:
+
+| | State directory |
+| --- | --- |
+| `nix run` | `~/.local/share/hyprapp` |
+| `nix develop` | `./state` |
+
+Whatever launches the app creates that directory and sets the variable; the app
+only reads it, and refuses to start if it is unset. It holds `fitness.db` and
+`config.yml`. The schema in `helpers/schema.sql` is
+applied on every start; `helpers/seed.sql` runs only when the database is empty,
+so renamed exercises and deleted users stay that way. `config.yml` is seeded from
+`.streamlit/config.yml.example` the first time it is needed.
 
 ## User Management
 
@@ -52,8 +70,11 @@ and the `config.yml` is updated with a hashed password.
 ### Removing a User (Work in progress)
 
 - Run this command with the name of user
-  - `docker exec -it hypertrophy-mysql mysql -p -e "delete from fitness.users where name = '{name}'"`
+  - `sqlite3 "${HYPRAPP_STATE_DIR:-$HOME/.local/share/hyprapp}/fitness.db" "pragma foreign_keys = on; delete from users where name = '{name}';"`
 - Delete the user from `config.yml`
+
+The `pragma` matters: without it SQLite skips the cascade and leaves the user's
+saved program draft behind.
 
 ## Scoring
 

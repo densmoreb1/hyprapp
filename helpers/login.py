@@ -1,13 +1,14 @@
+from helpers import settings
+from yaml.loader import SafeLoader
 import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
-from yaml.loader import SafeLoader
 
 
 def login():
     st.set_page_config(layout="wide")
 
-    with open(".streamlit/config.yml") as file:
+    with open(settings.config_path()) as file:
         config = yaml.load(file, Loader=SafeLoader)
 
     authenticator = stauth.Authenticate(

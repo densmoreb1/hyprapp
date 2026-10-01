@@ -50,7 +50,7 @@ if meso_name == "All":
             , e.name exercise_name
         FROM mesos m
         INNER JOIN exercises e ON m.exercise_id = e.id
-        WHERE user_id = %s
+        WHERE user_id = ?
         ORDER BY meso_id, week_id, day_id, order_id
         """
     workouts = conn.execute_query(sql, (user_id,))
@@ -67,8 +67,8 @@ else:
             , e.name exercise_name
         FROM mesos m
         INNER JOIN exercises e ON m.exercise_id = e.id
-        WHERE user_id = %s
-            AND meso_id = %s
+        WHERE user_id = ?
+            AND meso_id = ?
         ORDER BY meso_id, week_id, day_id, order_id
         """
     workouts = conn.execute_query(sql, (user_id, meso_id))

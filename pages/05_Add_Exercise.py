@@ -33,7 +33,7 @@ result = st.button("Create Exercise")
 names = conn.get_exercises_by_group(group)
 insert_sql = """
             INSERT INTO exercises (name, muscle_group)
-            VALUES (%s, %s)
+            VALUES (?, ?)
             """
 
 st.write("## Existing Exercises")

@@ -192,8 +192,8 @@ if result and name.strip():
         """
         SELECT name
         FROM mesos
-        WHERE name = %s
-            AND user_id = %s
+        WHERE name = ?
+            AND user_id = ?
         """,
         (name, user_id),
     )
@@ -205,7 +205,7 @@ if result and name.strip():
         """
         SELECT MAX(meso_id)
         FROM mesos
-        WHERE user_id = %s
+        WHERE user_id = ?
         """,
         (user_id,),
     )[0][0]

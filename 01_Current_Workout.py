@@ -1,12 +1,13 @@
 from helpers.connection import get_db
+from helpers.connection import now_str
 from helpers.dialogs import add_exercise
 from helpers.dialogs import change_exercise
 from helpers.dialogs import end
 from helpers.dialogs import enter_score
 from helpers.dialogs import exercise_history
 from helpers.dialogs import records
-from helpers.dialogs import weekly_volume
 from helpers.dialogs import swap_places
+from helpers.dialogs import weekly_volume
 from helpers.login import login
 import streamlit as st
 
@@ -39,7 +40,7 @@ query = """
         SELECT DISTINCT name
             , meso_id
         FROM mesos
-        WHERE user_id = %s
+        WHERE user_id = ?
             AND (completed = 0
                 OR completed_day = 0)
         ORDER BY meso_id DESC
@@ -62,8 +63,8 @@ query = """
         SELECT MIN(week_id)
         FROM mesos
         WHERE completed_day = 0
-            AND meso_id = %s
-            AND user_id = %s
+            AND meso_id = ?
+            AND user_id = ?
         """
 week_id = conn.execute_query(query, (meso_id, user_id))[0][0]
 
@@ -73,9 +74,9 @@ query = """
         SELECT MIN(day_id)
         FROM mesos
         WHERE completed_day = 0
-            AND meso_id = %s
-            AND week_id = %s
-            AND user_id = %s
+            AND meso_id = ?
+            AND week_id = ?
+            AND user_id = ?
         """
 day_id = conn.execute_query(query, (meso_id, week_id, user_id))[0][0]
 
@@ -88,10 +89,10 @@ query = """
             , e.muscle_group
         FROM mesos m
         INNER JOIN exercises e ON m.exercise_id = e.id
-        WHERE m.day_id = %s
-            AND m.week_id = %s
-            AND m.meso_id = %s
-            AND m.user_id = %s
+        WHERE m.day_id = ?
+            AND m.week_id = ?
+            AND m.meso_id = ?
+            AND m.user_id = ?
         ORDER BY m.order_id
         """
 exercises = conn.execute_query(query, (day_id, week_id, meso_id, user_id))
@@ -132,11 +133,11 @@ for i in range(len(exercises)):
                    , m.completed
             FROM mesos m
             INNER JOIN exercises e ON m.exercise_id = e.id
-            WHERE m.day_id = %s
-                AND m.week_id = %s
-                AND m.meso_id = %s
-                AND e.name = %s
-                AND m.user_id = %s
+            WHERE m.day_id = ?
+                AND m.week_id = ?
+                AND m.meso_id = ?
+                AND e.name = ?
+                AND m.user_id = ?
             ORDER BY m.order_id
             """
     workout = conn.execute_query(
@@ -191,8 +192,8 @@ for i in range(len(exercises)):
     max_week_query = """
             SELECT MAX(week_id)
             FROM mesos
-            WHERE meso_id = %s
-                AND user_id = %s
+            WHERE meso_id = ?
+                AND user_id = ?
             """
     max_week_id = conn.execute_query(max_week_query, (meso_id, user_id))[0][0]
     # Set loop
@@ -270,22 +271,23 @@ for i in range(len(exercises)):
             ):
                 query = """
                         UPDATE mesos
-                        SET reps = %s
-                            , weight = %s
+                        SET reps = ?
+                            , weight = ?
                             , completed = 1
-                            , date_completed = now()
-                        WHERE set_id = %s
-                            AND day_id = %s
-                            AND week_id = %s
-                            AND exercise_id = %s
-                            AND name = %s
-                            AND user_id = %s
+                            , date_completed = ?
+                        WHERE set_id = ?
+                            AND day_id = ?
+                            AND week_id = ?
+                            AND exercise_id = ?
+                            AND name = ?
+                            AND user_id = ?
                         """
                 conn.execute_query(
                     query,
                     (
                         reps,
                         weight,
+                        now_str(),
                         set_id,
                         day_id,
                         week_id,
@@ -324,12 +326,12 @@ for i in range(len(exercises)):
         query = """
                 DELETE
                 FROM mesos
-                WHERE set_id = %s
-                    AND day_id = %s
-                    AND week_id = %s
-                    AND exercise_id = %s
-                    AND name = %s
-                    AND user_id = %s
+                WHERE set_id = ?
+                    AND day_id = ?
+                    AND week_id = ?
+                    AND exercise_id = ?
+                    AND name = ?
+                    AND user_id = ?
                 """
         for i in range(week_id, max_week_id + 1):
             conn.execute_query(
@@ -377,10 +379,10 @@ if st.button("Complete Workout"):
     query = """
             SELECT COUNT(set_id)
             FROM mesos
-            WHERE day_id = %s
-                AND week_id = %s
-                AND meso_id = %s
-                AND user_id = %s
+            WHERE day_id = ?
+                AND week_id = ?
+                AND meso_id = ?
+                AND user_id = ?
                 AND completed = 1
             """
     set_count = conn.execute_query(query, (day_id, week_id, meso_id, user_id))[0][0]
@@ -389,10 +391,10 @@ if st.button("Complete Workout"):
         query = """
                 UPDATE mesos
                 SET completed_day = 1
-                WHERE day_id = %s
-                    AND week_id = %s
-                    AND meso_id = %s
-                    AND user_id = %s
+                WHERE day_id = ?
+                    AND week_id = ?
+                    AND meso_id = ?
+                    AND user_id = ?
                 """
         conn.execute_query(query, (day_id, week_id, meso_id, user_id))
         st.switch_page("pages/03_Previous_Workouts.py")
