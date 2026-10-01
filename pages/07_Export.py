@@ -1,4 +1,4 @@
-from helpers.connection import MySQLDatabase
+from helpers.connection import get_db
 from helpers.login import login
 import pandas as pd
 import streamlit as st
@@ -10,45 +10,37 @@ if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
     if authenticator:
         authenticator.logout(location="sidebar", key="current_logout")
-        authenticator.login(location="unrendered", key="current_logout")
+        authenticator.login(location="unrendered", key="current_login")
 else:
     login()
 
-conn = MySQLDatabase()
+conn = get_db()
 
 
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query("select id from users where name = %s", (user_name,))
-    user_id = sql[0][0]
+    user_id = conn.get_user_settings(user_name)[0]
 else:
     st.stop()
 
 
 # Get Mesos for the selected User
-query = (
-    "select distinct name, meso_id from mesos where user_id = %s order by meso_id desc"
-)
-sql = conn.execute_query(query, (user_id,))
-mesos = ["All"] + [g[0] for g in sql]
+mesos = ["All"] + conn.get_meso_names(user_id)
 
 # Check if there are no mesos for this user
 meso_id = None
 if len(mesos) > 0:
-    meso_name = st.selectbox("Mesos", mesos)
+    meso_name = st.selectbox("Programs", mesos)
     if meso_name != "All":
-        meso_id = conn.execute_query(
-            "select meso_id from mesos where name = %s and user_id = %s",
-            (meso_name, user_id),
-        )[0][0]
+        meso_id = conn.get_meso_id(meso_name, user_id)
 else:
-    st.write("Looks you have not created a meso yet")
+    st.write("Looks you have not created a program yet")
     st.stop()
 
 if meso_name == "All":
-    sql = f"""
-        select m.name meso_name
+    sql = """
+        SELECT m.name meso_name
             , m.date_completed
             , week_id + 1 week
             , day_id + 1 day
@@ -56,16 +48,16 @@ if meso_name == "All":
             , reps
             , weight
             , e.name exercise_name
-        from mesos m
-        inner join exercises e on m.exercise_id = e.id
-        where user_id = %s
-        order by meso_id, week_id, day_id, order_id
+        FROM mesos m
+        INNER JOIN exercises e ON m.exercise_id = e.id
+        WHERE user_id = %s
+        ORDER BY meso_id, week_id, day_id, order_id
         """
     workouts = conn.execute_query(sql, (user_id,))
     filename = "all-workouts.csv"
 else:
-    sql = f"""
-        select m.name meso_name
+    sql = """
+        SELECT m.name meso_name
             , m.date_completed
             , week_id + 1 week
             , day_id + 1 day
@@ -73,13 +65,13 @@ else:
             , reps
             , weight
             , e.name exercise_name
-        from mesos m
-        inner join exercises e on m.exercise_id = e.id
-        where user_id = %s and meso_id = %s
-        order by meso_id, week_id, day_id, order_id
+        FROM mesos m
+        INNER JOIN exercises e ON m.exercise_id = e.id
+        WHERE user_id = %s
+            AND meso_id = %s
+        ORDER BY meso_id, week_id, day_id, order_id
         """
     workouts = conn.execute_query(sql, (user_id, meso_id))
-    meso_name = str(meso_name)
     filename = f"{"".join(meso_name.split(" "))}.csv"
 
 df = pd.DataFrame(

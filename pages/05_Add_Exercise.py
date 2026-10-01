@@ -1,4 +1,4 @@
-from helpers.connection import MySQLDatabase
+from helpers.connection import get_db
 from helpers.login import login
 import streamlit as st
 
@@ -9,40 +9,40 @@ if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
     if authenticator:
         authenticator.logout(location="sidebar", key="add_logout")
-        authenticator.login(location="unrendered", key="add_logout")
+        authenticator.login(location="unrendered", key="add_login")
 else:
     login()
 
-conn = MySQLDatabase()
+conn = get_db()
 
 
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[
-        0
-    ][0]
+    user_id = conn.get_user_settings(user_name)[0]
 else:
     st.stop()
 
 
-query = "select distinct muscle_group from exercises order by muscle_group"
-sql = conn.execute_query(query, params=None)
-groups = [u[0] for u in sql]
+groups = conn.get_muscle_groups()
 
-name = st.text_input("Exercise Name").lower().strip()
 group = st.selectbox("Muscle Group", groups, index=None)
+enter_name = st.text_input("Exercise Name").lower().strip()
 result = st.button("Create Exercise")
 
-query = "select name from exercises"
-sql = conn.execute_query(query, params=None)
-names = [u[0] for u in sql]
+names = conn.get_exercises_by_group(group)
+insert_sql = """
+            INSERT INTO exercises (name, muscle_group)
+            VALUES (%s, %s)
+            """
 
-insert_sql = "insert into exercises (name, muscle_group) values (%s, %s)"
+st.write("## Existing Exercises")
+for name in names:
+    st.write(name)
 
 if result:
-    if name not in names:
-        conn.execute_query(insert_sql, (name, group))
+    if enter_name not in names:
+        conn.execute_query(insert_sql, (enter_name, group))
         st.toast("Exercise created")
     else:
         st.toast("Exercise already exists")

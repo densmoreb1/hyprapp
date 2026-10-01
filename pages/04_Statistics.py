@@ -1,4 +1,4 @@
-from helpers.connection import MySQLDatabase
+from helpers.connection import get_db
 from helpers.login import login
 import plotly.graph_objects as go
 import plotly.express as px
@@ -12,22 +12,20 @@ if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
     if authenticator:
         authenticator.logout(location="sidebar", key="stats_logout")
-        authenticator.login(location="unrendered", key="stats_logout")
+        authenticator.login(location="unrendered", key="stats_login")
 else:
     login()
 
-conn = MySQLDatabase()
+conn = get_db()
 
 
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query(
-        "select id, past_mesos, months from users where name = %s", (user_name,)
-    )
-    user_id = sql[0][0]
-    past_mesos_count = sql[0][1]
-    months = sql[0][2]
+    user = conn.get_user_settings(user_name)
+    user_id = user[0]
+    past_mesos_count = user[3]
+    months = user[4]
 else:
     st.stop()
 
@@ -36,22 +34,19 @@ background_color = "#121212"
 text_color = "#E0E0E0"
 line_color = "#EF5350"
 
-
 st.write("### Sets")
-groups_sql = conn.execute_query(
-    "select distinct muscle_group from exercises order by muscle_group", params=None
-)
-muscle_groups = [g[0] for g in groups_sql]
+
+muscle_groups = conn.get_muscle_groups()
 muscle_group = st.multiselect("Muscle Groups", muscle_groups)
 
 # Show set increase over each meso
 if len(muscle_group) != 0:
     limited_mesos_query = """
-    select distinct meso_id
-    from mesos
-    order by meso_id desc
-    limit %s
-    """
+        SELECT DISTINCT meso_id
+        FROM mesos
+        ORDER BY meso_id DESC
+        LIMIT %s
+        """
     limited_mesos = conn.execute_query(limited_mesos_query, (past_mesos_count,))
 
     meso_ids = [x[0] for x in limited_mesos]
@@ -59,38 +54,88 @@ if len(muscle_group) != 0:
 
     for muscle in muscle_group:
         sets_query = f"""
-        select m.name, m.week_id + 1, e.muscle_group, count(m.set_id), m.meso_id
-        from mesos m
-        inner join exercises e on m.exercise_id = e.id
-        where user_id = %s and weight is not null and reps != 0 and completed = 1 and e.muscle_group = %s and m.meso_id in ({placeholders})
-        group by m.meso_id, m.name, m.week_id, e.muscle_group
-        order by m.meso_id
-        """
+            SELECT m.name,
+                   m.week_id + 1,
+                   e.muscle_group,
+                   COUNT(m.set_id),
+                   m.meso_id
+            FROM mesos m
+            INNER JOIN exercises e ON m.exercise_id = e.id
+            WHERE m.user_id = %s
+              AND m.weight IS NOT NULL
+              AND m.reps != 0
+              AND m.completed = 1
+              AND e.muscle_group = %s
+              AND m.meso_id IN ({placeholders})
+            GROUP BY m.meso_id,
+                     m.name,
+                     m.week_id,
+                     e.muscle_group
+            ORDER BY m.meso_id
+            """
         params = [user_id, muscle] + meso_ids
         sets_sql = conn.execute_query(sets_query, tuple(params))
 
         if len(sets_sql) > 0:
+
             st.write(muscle.capitalize())
             df = pd.DataFrame(
                 sets_sql,
                 columns=pd.Index(
-                    ["MesoName", "Week", "muscle_group", "Sets", "meso_id"]
+                    ["Program", "Week", "muscle_group", "Sets", "meso_id"]
                 ),
             )
-
             fig = px.bar(
                 df,
                 x="Week",
                 y="Sets",
-                color="MesoName",
+                color="Program",
                 barmode="group",  # or "stack"
                 text="Sets",
             )
 
             fig.update_layout(
                 xaxis_title="Week",
-                yaxis_title="Sets",
-                legend_title="Mesocycle",
+                yaxis_title="Sets over each Program week",
+                legend_title="Program",
+                bargap=0.2,
+                height=500,
+            )
+            fig.update_traces(textposition="outside")
+            st.plotly_chart(fig, width="stretch")
+
+            sets_query = f"""
+                SELECT DATE_SUB(
+                           DATE(m.date_completed),
+                           INTERVAL WEEKDAY(m.date_completed) DAY
+                       ) AS week_start,
+                       COUNT(m.set_id)
+                FROM mesos m
+                INNER JOIN exercises e ON m.exercise_id = e.id
+                WHERE m.user_id = %s
+                  AND m.weight IS NOT NULL
+                  AND m.reps != 0
+                  AND m.completed = 1
+                  AND e.muscle_group = %s
+                  AND m.date_completed >= DATE_SUB(CURDATE(), INTERVAL %s MONTH)
+                GROUP BY week_start
+                ORDER BY week_start
+                """
+            sets_sql = conn.execute_query(sets_query, (user_id, muscle, months))
+            df = pd.DataFrame(
+                sets_sql,
+                columns=pd.Index(["Week", "Sets"]),
+            )
+            fig = px.bar(
+                df,
+                x="Week",
+                y="Sets",
+                barmode="group",
+                text="Sets",
+            )
+            fig.update_layout(
+                xaxis_title="Week",
+                yaxis_title="Sets per week",
                 bargap=0.2,
                 height=500,
             )
@@ -101,14 +146,12 @@ if len(muscle_group) != 0:
             st.write(muscle.capitalize())
             st.write("None")
 
+
 st.write("### Volume")
 
-group = st.selectbox("Muscle Group", muscle_groups, index=None)
-
-sql = conn.execute_query(
-    "select name from exercises where muscle_group = %s order by name", (group,)
-)
-exercise_selection = [e[0] for e in sql]
+exercise_selection = []
+if muscle_group:
+    exercise_selection = conn.get_exercises_by_group(muscle_group[-1])
 exercise = st.selectbox(
     "Exercise",
     exercise_selection,
@@ -117,9 +160,7 @@ exercise = st.selectbox(
     label_visibility="collapsed",
 )
 if exercise:
-    exercise_id = conn.execute_query(
-        "select id from exercises where name = %s", (exercise,)
-    )[0][0]
+    exercise_id = conn.get_exercise_id(exercise)
 
     query = """
             SELECT reps, weight, workout_date

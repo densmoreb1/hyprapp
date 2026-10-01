@@ -1,4 +1,4 @@
-from helpers.connection import MySQLDatabase
+from helpers.connection import get_db
 from helpers.login import login
 import streamlit as st
 
@@ -9,45 +9,43 @@ if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
     if authenticator:
         authenticator.logout(location="sidebar", key="previous_logout")
-        authenticator.login(location="unrendered", key="previous_logout")
+        authenticator.login(location="unrendered", key="previous_login")
 else:
     login()
 
-conn = MySQLDatabase()
+conn = get_db()
 
 
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    user_id = conn.execute_query("select id from users where name = %s", (user_name,))[
-        0
-    ][0]
+    user_id = conn.get_user_settings(user_name)[0]
 else:
     st.stop()
 
 
 # Get Meso for the selected User
-query = (
-    "select distinct name, meso_id from mesos where user_id = %s order by meso_id desc"
-)
-sql = conn.execute_query(query, (user_id,))
-mesos = [g[0] for g in sql]
+mesos = conn.get_meso_names(user_id)
 
 
 # Check if there are no mesos for this user
 if len(mesos) > 0:
-    meso_name = st.selectbox("Mesos", mesos)
-    meso_id = conn.execute_query(
-        "select meso_id from mesos where name = %s and user_id = %s",
-        (meso_name, user_id),
-    )[0][0]
+    meso_name = st.selectbox("Programs", mesos)
+    meso_id = conn.get_meso_id(meso_name, user_id)
 else:
-    st.write("Looks you have not created a meso yet")
+    st.write("Looks you have not created a program yet")
     st.stop()
 
 
 # Get the completed week_ids
-query = "select distinct week_id from mesos where meso_id = %s and user_id = %s and completed = 1 order by week_id desc"
+query = """
+        SELECT DISTINCT week_id
+        FROM mesos
+        WHERE meso_id = %s
+            AND user_id = %s
+            AND completed = 1
+        ORDER BY week_id DESC
+        """
 sql = conn.execute_query(query, (meso_id, user_id))
 weeks = [d[0] + 1 for d in sql]
 
@@ -59,7 +57,15 @@ else:
 
 
 # Get the completed day_ids
-query = "select distinct day_id from mesos where completed = 1 and meso_id = %s and week_id = %s and user_id = %s order by day_id"
+query = """
+        SELECT DISTINCT day_id
+        FROM mesos
+        WHERE completed = 1
+            AND meso_id = %s
+            AND week_id = %s
+            AND user_id = %s
+        ORDER BY day_id
+        """
 sql = conn.execute_query(query, (meso_id, week_id, user_id))
 days = [str(d[0] + 1) for d in sql]
 
@@ -71,11 +77,16 @@ for day_id in range(len(day_tabs)):
 
         # Get the exercises
         query = """
-                select distinct e.name, e.id, m.order_id
-                from mesos m
-                inner join exercises e on m.exercise_id = e.id
-                where m.day_id = %s and m.week_id = %s and m.meso_id = %s and m.user_id = %s
-                order by m.order_id
+                SELECT DISTINCT e.name
+                    , e.id
+                    , m.order_id
+                FROM mesos m
+                INNER JOIN exercises e ON m.exercise_id = e.id
+                WHERE m.day_id = %s
+                    AND m.week_id = %s
+                    AND m.meso_id = %s
+                    AND m.user_id = %s
+                ORDER BY m.order_id
                 """
         exercises = conn.execute_query(query, (day_id, week_id, meso_id, user_id))
 
@@ -83,11 +94,20 @@ for day_id in range(len(day_tabs)):
             exercise_name = exercises[i][0]
 
             query = """
-                    select m.set_id, m.reps, m.weight, e.name, e.id, m.order_id
-                    from mesos m
-                    inner join exercises e on m.exercise_id = e.id
-                    where m.day_id = %s and m.week_id = %s and m.meso_id = %s and m.user_id = %s and e.name = %s
-                    order by m.order_id
+                    SELECT m.set_id
+                        , m.reps
+                        , m.weight
+                        , e.name
+                        , e.id
+                        , m.order_id
+                    FROM mesos m
+                    INNER JOIN exercises e ON m.exercise_id = e.id
+                    WHERE m.day_id = %s
+                        AND m.week_id = %s
+                        AND m.meso_id = %s
+                        AND m.user_id = %s
+                        AND e.name = %s
+                    ORDER BY m.order_id
                     """
             workout = conn.execute_query(
                 query, (day_id, week_id, meso_id, user_id, exercise_name)
@@ -112,9 +132,13 @@ for day_id in range(len(day_tabs)):
                     st.write(f"Reps: {reps}")
 
         if st.button(f"Reopen Day {day_id + 1}"):
-            query = """update mesos
-                       set completed_day = 0
-                       where user_id = %s and meso_id = %s and week_id = %s and day_id = %s
+            query = """
+                    UPDATE mesos
+                    SET completed_day = 0
+                    WHERE user_id = %s
+                        AND meso_id = %s
+                        AND week_id = %s
+                        AND day_id = %s
                     """
             conn.execute_query(query, (user_id, meso_id, week_id, day_id))
             st.switch_page("01_Current_Workout.py")
@@ -128,14 +152,26 @@ if st.button("Add a Week"):
 
     max_week_id = int(
         conn.execute_query(
-            "select max(week_id) from mesos where user_id = %s and meso_id = %s",
+            """
+            SELECT MAX(week_id)
+            FROM mesos
+            WHERE user_id = %s
+                AND meso_id = %s
+            """,
             (user_id, meso_id),
         )[0][0]
     )
 
-    query = """select distinct day_id, exercise_id, order_id, set_id
-               from mesos where user_id = %s and meso_id = %s and week_id = %s
-               order by day_id, order_id
+    query = """
+            SELECT DISTINCT day_id
+                , exercise_id
+                , order_id
+                , set_id
+            FROM mesos
+            WHERE user_id = %s
+                AND meso_id = %s
+                AND week_id = %s
+            ORDER BY day_id, order_id
             """
 
     workout_week = conn.execute_query(query, (user_id, meso_id, max_week_id))
@@ -163,7 +199,12 @@ if st.button("Add a Week"):
 
     st.toast(f"Week {max_week_id + 2} added", icon="✅")
 
-if st.button("Delete Meso"):
-    query = "delete from mesos where user_id = %s and meso_id = %s"
+if st.button("Delete Program"):
+    query = """
+            DELETE
+            FROM mesos
+            WHERE user_id = %s
+                AND meso_id = %s
+            """
     conn.execute_query(query, (user_id, meso_id))
     st.toast(f"{meso_name} deleted", icon="👑")

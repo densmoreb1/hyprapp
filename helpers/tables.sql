@@ -38,6 +38,13 @@ create table if not exists mesos (
 	unique (meso_id, name, user_id, exercise_id, day_id, week_id, set_id)
 );
 
+create table if not exists meso_drafts (
+	user_id int primary key,
+	draft json,
+	updated_at datetime,
+	foreign key (user_id) references users(id) on delete cascade
+);
+
 insert into users (name, keep_score, past_mesos, months) values ('test', 0, 3, 8 );
 
 insert into exercises (name, muscle_group) values ('incline bench press', 'chest');

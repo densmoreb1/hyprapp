@@ -1,4 +1,4 @@
-from helpers.connection import MySQLDatabase
+from helpers.connection import get_db
 from helpers.login import login
 import streamlit as st
 import yaml
@@ -11,24 +11,21 @@ if st.session_state.get("authentication_status"):
     authenticator = st.session_state.get("authenticator")
     if authenticator:
         authenticator.logout(location="sidebar", key="setting_logout")
-        authenticator.login(location="unrendered", key="setting_logout")
+        authenticator.login(location="unrendered", key="setting_login")
 else:
     login()
 
-conn = MySQLDatabase()
+conn = get_db()
 
 
 # Get the current user
 if "username" in st.session_state and st.session_state["username"] is not None:
     user_name = st.session_state["username"]
-    sql = conn.execute_query(
-        "select id, keep_score, past_mesos, months from users where name = %s",
-        (user_name,),
-    )
-    user_id = sql[0][0]
-    keep_score = sql[0][1]
-    past_mesos_count = sql[0][2]
-    months = sql[0][3]
+    user = conn.get_user_settings(user_name)
+    user_id = user[0]
+    keep_score = user[2]
+    past_mesos_count = user[3]
+    months = user[4]
 else:
     st.stop()
 
@@ -45,7 +42,11 @@ if st.session_state["authentication_status"]:
         )
 
         if st.form_submit_button() and change:
-            query = "update users set keep_score = %s where id = %s"
+            query = """
+                    UPDATE users
+                    SET keep_score = %s
+                    WHERE id = %s
+                    """
             conn.execute_query(query, (reverse_mapping[change], user_id))
             st.success("Updated scoring")
 
@@ -53,7 +54,7 @@ if st.session_state["authentication_status"]:
         st.write("### User Statistics")
 
         new = st.number_input(
-            "Number of past mesos to show:",
+            "Number of past programs to show:",
             value=past_mesos_count,
             step=1,
         )
@@ -65,11 +66,19 @@ if st.session_state["authentication_status"]:
         )
 
         if st.form_submit_button():
-            query = "update users set past_mesos = %s where id = %s"
+            query = """
+                    UPDATE users
+                    SET past_mesos = %s
+                    WHERE id = %s
+                    """
             conn.execute_query(query, (new, user_id))
-            query = "update users set months = %s where id = %s"
+            query = """
+                    UPDATE users
+                    SET months = %s
+                    WHERE id = %s
+                    """
             conn.execute_query(query, (new_months, user_id))
-            st.success("Updated view for past mesos")
+            st.success("Updated view for past programs")
 
     authenticator = st.session_state.get("authenticator")
     try:
@@ -85,6 +94,25 @@ if st.session_state["authentication_status"]:
 
 
 if "admin" in st.session_state["roles"]:
+    # Exercise naming
+    st.write("### Rename exercises")
+    groups = conn.get_muscle_groups()
+    group = st.selectbox("Muscle Group", groups, index=None)
+    if group:
+        names = conn.get_exercises_by_group(group)
+        change_name = st.selectbox("Change This Exercise", names, index=None)
+        if change_name:
+            change_to = st.text_input("Change To", value=change_name).lower().strip()
+            update_query = """
+                        UPDATE exercises
+                        SET name = %s
+                        WHERE name = %s
+                        """
+            if st.button("Change Name"):
+                conn.execute_query(update_query, params=(change_to, change_name))
+                st.toast("Changed")
+
+    # New user
     try:
         register_user = None
         if authenticator:
@@ -98,18 +126,22 @@ if "admin" in st.session_state["roles"]:
         st.stop()
 
     if register_user is not None:
-        query = "select name from users"
+        query = """
+                SELECT name
+                FROM users
+                """
         sql = conn.execute_query(query, params=None)
         names = [u[0] for u in sql]
 
         if register_user not in names:
-            query = "insert into users (name) values (%s)"
+            query = """
+                    INSERT INTO users (name)
+                    VALUES (%s)
+                    """
             conn.execute_query(query, (register_user,))
 
-            query = "select id from users where name = %s"
-            id = conn.execute_query(query, (register_user,))[0][0]
+            id = conn.get_user_settings(register_user)[0]
             st.toast(f'User "{register_user}" was created with id of {id}')
         else:
-            query = "select id from users where name = %s"
-            id = conn.execute_query(query, (register_user,))[0][0]
+            id = conn.get_user_settings(register_user)[0]
             st.toast(f'User "{register_user}" already exists with id of {id}')
