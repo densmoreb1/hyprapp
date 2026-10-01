@@ -1,6 +1,6 @@
-import streamlit as st
-import datetime
+from helpers.connection import fmt_date
 import random
+import streamlit as st
 import time
 
 
@@ -24,7 +24,7 @@ def possible_volume(conn, exercises):
             query = """
                     SELECT muscle_group
                     FROM exercises
-                    WHERE name = %s
+                    WHERE name = ?
                     """
             sql = conn.execute_query(query, (exercise_name,))
 
@@ -53,12 +53,12 @@ def weekly_volume(conn, user_id, meso_id, exercise_id, week_id):
             SELECT COUNT(set_id)
             FROM mesos m
             INNER JOIN exercises e ON m.exercise_id = e.id
-            WHERE user_id = %s
-                AND meso_id = %s
-                AND muscle_group = %s
+            WHERE user_id = ?
+                AND meso_id = ?
+                AND muscle_group = ?
                 AND (
-                    week_id = %s
-                    OR week_id = %s
+                    week_id = ?
+                    OR week_id = ?
                     )
             GROUP BY week_id
             ORDER BY week_id
@@ -89,8 +89,8 @@ def end(conn, user_id, meso_id):
         query = """
                 DELETE
                 FROM mesos
-                WHERE user_id = %s
-                    AND meso_id = %s
+                WHERE user_id = ?
+                    AND meso_id = ?
                     AND completed = 0
                 """
         conn.execute_query(query, (user_id, meso_id))
@@ -98,8 +98,8 @@ def end(conn, user_id, meso_id):
         query = """
                 UPDATE mesos
                 SET completed_day = 1
-                WHERE user_id = %s
-                    AND meso_id = %s
+                WHERE user_id = ?
+                    AND meso_id = ?
                 """
         conn.execute_query(query, (user_id, meso_id))
         st.rerun()
@@ -146,11 +146,11 @@ def enter_score(
                     """
                     SELECT MAX(set_id)
                     FROM mesos
-                    WHERE meso_id = %s
-                        AND user_id = %s
-                        AND day_id = %s
-                        AND week_id = %s
-                        AND exercise_id = %s
+                    WHERE meso_id = ?
+                        AND user_id = ?
+                        AND day_id = ?
+                        AND week_id = ?
+                        AND exercise_id = ?
                     """,
                     (
                         meso_id,
@@ -188,9 +188,9 @@ def records(conn, user_id, exercise_id, exercise_name):
                 , MAX(reps)
                 , date_completed
             FROM mesos
-            WHERE user_id = %s
+            WHERE user_id = ?
                 AND completed = 1
-                AND exercise_id = %s
+                AND exercise_id = ?
             GROUP BY date_completed
                 , exercise_id
             ORDER BY MAX(weight) * MAX(reps) DESC limit 1
@@ -202,7 +202,7 @@ def records(conn, user_id, exercise_id, exercise_name):
 
     reps = sql[0][1]
     weight = sql[0][0]
-    date = datetime.datetime.strftime(sql[0][2], "%m/%d/%Y")
+    date = fmt_date(sql[0][2])
 
     st.write(f"### {exercise_name.capitalize()}")
     st.write(f"#### Most Volume {date}")
@@ -213,9 +213,9 @@ def records(conn, user_id, exercise_id, exercise_name):
             SELECT MAX(weight)
                 , date_completed
             FROM mesos
-            WHERE user_id = %s
+            WHERE user_id = ?
                 AND completed = 1
-                AND exercise_id = %s
+                AND exercise_id = ?
             GROUP BY date_completed
                 , exercise_id
             ORDER BY MAX(weight) DESC
@@ -227,7 +227,7 @@ def records(conn, user_id, exercise_id, exercise_name):
         st.stop()
 
     weight = sql[0][0]
-    date = datetime.datetime.strftime(sql[0][1], "%m/%d/%Y")
+    date = fmt_date(sql[0][1])
 
     st.write(f"#### Most Weight {date}")
     st.write(f"Weight: {weight}")
@@ -255,10 +255,10 @@ def add_exercise(conn, user_id, meso_id, day_id, week_id, meso_name, max_week_id
     query = """
             SELECT MAX(order_id)
             FROM mesos
-            WHERE user_id = %s
-                AND meso_id = %s
-                AND day_id = %s
-                AND week_id = %s
+            WHERE user_id = ?
+                AND meso_id = ?
+                AND day_id = ?
+                AND week_id = ?
             """
     max_order_id = conn.execute_query(query, (user_id, meso_id, day_id, week_id))[0][0]
 
@@ -299,16 +299,16 @@ def change_exercise(
     updated_exercise_id = conn.get_exercise_id(updated_exercise)
 
     query = """
-            UPDATE mesos m
-            SET m.exercise_id = %s
-                , m.weight = NULL
-                , m.reps = NULL
-                , m.completed = 0
-            WHERE m.meso_id = %s
-                AND m.exercise_id = %s
-                AND user_id = %s
-                AND day_id = %s
-                AND week_id >= %s
+            UPDATE mesos
+            SET exercise_id = ?
+                , weight = NULL
+                , reps = NULL
+                , completed = 0
+            WHERE meso_id = ?
+                AND exercise_id = ?
+                AND user_id = ?
+                AND day_id = ?
+                AND week_id >= ?
             """
     if st.button("Confirm"):
         conn.execute_query(
@@ -331,10 +331,10 @@ def exercise_history(exercise_id, user_id, conn, past_mesos_count):
             SELECT DISTINCT name
                 , meso_id
             FROM mesos
-            WHERE exercise_id = %s
-                AND user_id = %s
+            WHERE exercise_id = ?
+                AND user_id = ?
                 AND completed = 1
-            ORDER BY meso_id DESC limit %s
+            ORDER BY meso_id DESC limit ?
             """
     sql = conn.execute_query(query, (exercise_id, user_id, past_mesos_count))
     for i in range(len(sql)):
@@ -345,10 +345,10 @@ def exercise_history(exercise_id, user_id, conn, past_mesos_count):
                 SELECT DISTINCT week_id
                     , day_id
                 FROM mesos
-                WHERE exercise_id = %s
-                    AND user_id = %s
+                WHERE exercise_id = ?
+                    AND user_id = ?
                     AND completed = 1
-                    AND name = %s
+                    AND name = ?
                 ORDER BY week_id DESC
                     , day_id DESC
                   """
@@ -363,19 +363,19 @@ def exercise_history(exercise_id, user_id, conn, past_mesos_count):
                                 , set_id
                                 , date_completed
                             FROM mesos
-                            WHERE exercise_id = %s
-                                AND user_id = %s
+                            WHERE exercise_id = ?
+                                AND user_id = ?
                                 AND completed = 1
-                                AND name = %s
-                                AND week_id = %s
-                                AND day_id = %s
+                                AND name = ?
+                                AND week_id = ?
+                                AND day_id = ?
                             ORDER BY set_id
                             """
             history_reps_sql = conn.execute_query(
                 history_reps,
                 (exercise_id, user_id, history_meso, history_week, history_day),
             )
-            date = datetime.datetime.strftime(history_reps_sql[0][3], "%m/%d/%Y")
+            date = fmt_date(history_reps_sql[0][3])
 
             st.write(f"### {date} Week {history_week + 1} Day {history_day + 1}")
 
@@ -401,11 +401,11 @@ def swap_places(
             , exercise_id
         FROM mesos m
         INNER JOIN exercises e ON m.exercise_id = e.id
-        WHERE user_id = %s
-            AND meso_id = %s
-            AND week_id = %s
-            AND day_id = %s
-            AND e.name != %s
+        WHERE user_id = ?
+            AND meso_id = ?
+            AND week_id = ?
+            AND day_id = ?
+            AND e.name != ?
         ORDER BY order_id
         """
     sql = conn.execute_query(query, (user_id, meso_id, week_id, day_id, exercise_name))
@@ -419,36 +419,42 @@ def swap_places(
     new_order_id = exercises[new_order_name]
 
     if st.button("Confirm"):
+        # The exercise name is what stops the second update re-matching rows the
+        # first just moved, so both halves must run together or not at all.
         query = """
-            UPDATE mesos m
-            INNER JOIN exercises e ON m.exercise_id = e.id
-            SET order_id = %s
-            WHERE user_id = %s
-                AND meso_id = %s
-                AND week_id >= %s
-                AND order_id = %s
-                AND e.name = %s
+            UPDATE mesos
+            SET order_id = ?
+            WHERE user_id = ?
+                AND meso_id = ?
+                AND week_id >= ?
+                AND order_id = ?
+                AND exercise_id = (
+                    SELECT id
+                    FROM exercises
+                    WHERE name = ?
+                )
             """
-        sql = conn.execute_query(
-            query,
-            (
-                new_order_id,
-                user_id,
-                meso_id,
-                week_id,
-                order_id,
-                exercise_name,
-            ),
-        )
-        sql = conn.execute_query(
-            query,
-            (
-                order_id,
-                user_id,
-                meso_id,
-                week_id,
-                new_order_id,
-                new_order_name,
-            ),
-        )
+        with conn.transaction() as cursor:
+            cursor.execute(
+                query,
+                (
+                    new_order_id,
+                    user_id,
+                    meso_id,
+                    week_id,
+                    order_id,
+                    exercise_name,
+                ),
+            )
+            cursor.execute(
+                query,
+                (
+                    order_id,
+                    user_id,
+                    meso_id,
+                    week_id,
+                    new_order_id,
+                    new_order_name,
+                ),
+            )
         st.rerun()

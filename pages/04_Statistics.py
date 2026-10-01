@@ -1,9 +1,10 @@
 from helpers.connection import get_db
+from helpers.connection import months_ago
 from helpers.login import login
-import plotly.graph_objects as go
-import plotly.express as px
-import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
 
 st.write("# Statistics")
 
@@ -26,6 +27,7 @@ if "username" in st.session_state and st.session_state["username"] is not None:
     user_id = user[0]
     past_mesos_count = user[3]
     months = user[4]
+    cutoff = months_ago(months)
 else:
     st.stop()
 
@@ -45,32 +47,32 @@ if len(muscle_group) != 0:
         SELECT DISTINCT meso_id
         FROM mesos
         ORDER BY meso_id DESC
-        LIMIT %s
+        LIMIT ?
         """
     limited_mesos = conn.execute_query(limited_mesos_query, (past_mesos_count,))
 
     meso_ids = [x[0] for x in limited_mesos]
-    placeholders = ", ".join(["%s"] * len(meso_ids))
+    placeholders = ", ".join(["?"] * len(meso_ids))
 
     for muscle in muscle_group:
         sets_query = f"""
-            SELECT m.name,
-                   m.week_id + 1,
-                   e.muscle_group,
-                   COUNT(m.set_id),
-                   m.meso_id
+            SELECT m.name
+                , m.week_id + 1
+                , e.muscle_group
+                , COUNT(m.set_id)
+                , m.meso_id
             FROM mesos m
             INNER JOIN exercises e ON m.exercise_id = e.id
-            WHERE m.user_id = %s
-              AND m.weight IS NOT NULL
-              AND m.reps != 0
-              AND m.completed = 1
-              AND e.muscle_group = %s
-              AND m.meso_id IN ({placeholders})
-            GROUP BY m.meso_id,
-                     m.name,
-                     m.week_id,
-                     e.muscle_group
+            WHERE m.user_id = ?
+                AND m.weight IS NOT NULL
+                AND m.reps != 0
+                AND m.completed = 1
+                AND e.muscle_group = ?
+                AND m.meso_id IN ({placeholders})
+            GROUP BY m.meso_id
+                , m.name
+                , m.week_id
+                , e.muscle_group
             ORDER BY m.meso_id
             """
         params = [user_id, muscle] + meso_ids
@@ -104,24 +106,22 @@ if len(muscle_group) != 0:
             fig.update_traces(textposition="outside")
             st.plotly_chart(fig, width="stretch")
 
-            sets_query = f"""
-                SELECT DATE_SUB(
-                           DATE(m.date_completed),
-                           INTERVAL WEEKDAY(m.date_completed) DAY
-                       ) AS week_start,
-                       COUNT(m.set_id)
+            # '-6 days' then 'weekday 1' is the Monday on or before the date.
+            sets_query = """
+                SELECT DATE(m.date_completed, '-6 days', 'weekday 1') AS week_start
+                    , COUNT(m.set_id)
                 FROM mesos m
                 INNER JOIN exercises e ON m.exercise_id = e.id
-                WHERE m.user_id = %s
-                  AND m.weight IS NOT NULL
-                  AND m.reps != 0
-                  AND m.completed = 1
-                  AND e.muscle_group = %s
-                  AND m.date_completed >= DATE_SUB(CURDATE(), INTERVAL %s MONTH)
+                WHERE m.user_id = ?
+                    AND m.weight IS NOT NULL
+                    AND m.reps != 0
+                    AND m.completed = 1
+                    AND e.muscle_group = ?
+                    AND m.date_completed >= ?
                 GROUP BY week_start
                 ORDER BY week_start
                 """
-            sets_sql = conn.execute_query(sets_query, (user_id, muscle, months))
+            sets_sql = conn.execute_query(sets_query, (user_id, muscle, cutoff))
             df = pd.DataFrame(
                 sets_sql,
                 columns=pd.Index(["Week", "Sets"]),
@@ -163,27 +163,28 @@ if exercise:
     exercise_id = conn.get_exercise_id(exercise)
 
     query = """
-            SELECT reps, weight, workout_date
+            SELECT reps
+                , weight
+                , workout_date
             FROM (
-                SELECT
-                    reps,
-                    weight,
-                    DATE(date_completed) AS workout_date,
-                    ROW_NUMBER() OVER (
+                SELECT reps
+                    , weight
+                    , DATE(date_completed) AS workout_date
+                    , ROW_NUMBER() OVER (
                         PARTITION BY DATE(date_completed)
                         ORDER BY reps * weight DESC
                     ) AS rn
                 FROM mesos
-                WHERE user_id = %s
-                    AND exercise_id = %s
+                WHERE user_id = ?
+                    AND exercise_id = ?
                     AND completed = 1
                     AND reps != 0
-                    AND date_completed >= DATE_SUB(CURDATE(), INTERVAL %s MONTH)
+                    AND date_completed >= ?
             ) ranked
             WHERE rn = 1
-            ORDER BY workout_date;
+            ORDER BY workout_date
             """
-    sql = conn.execute_query(query, (user_id, exercise_id, months))
+    sql = conn.execute_query(query, (user_id, exercise_id, cutoff))
 
     if len(sql) > 0:
         df = pd.DataFrame(sql, columns=pd.Index(["reps", "weight", "date"]))
@@ -225,14 +226,14 @@ if exercise:
             SELECT SUM(reps * weight)
                 , DATE(date_completed)
             FROM mesos
-            WHERE user_id = %s
-                AND exercise_id = %s
+            WHERE user_id = ?
+                AND exercise_id = ?
                 AND completed = 1
                 AND reps != 0
-                AND date_completed >= DATE_SUB(CURDATE(), INTERVAL %s MONTH)
+                AND date_completed >= ?
             GROUP BY DATE(date_completed)
             """
-    sql = conn.execute_query(query, (user_id, exercise_id, months))
+    sql = conn.execute_query(query, (user_id, exercise_id, cutoff))
 
     if len(sql) > 0:
         df = pd.DataFrame(sql, columns=pd.Index(["volume", "date"]))

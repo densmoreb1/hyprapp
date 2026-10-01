@@ -1,47 +1,135 @@
-from mysql import connector
+from helpers import settings
+import contextlib
 import json
-import os
+import pathlib
+import pendulum
+import sqlite3
 import streamlit as st
+import threading
+
+APP_TZ = "UTC"
 
 
 @st.cache_resource
 def get_db():
-    return MySQLDatabase()
+    return Database()
 
 
-class MySQLDatabase:
+def now_str() -> str:
+    """
+    Current time in the storage format described in schema.sql.
+    Inputs:
+        None
+    Outputs:
+        Timestamp text, 'YYYY-MM-DD HH:MM:SS'
+    """
+    return pendulum.now(APP_TZ).to_datetime_string()
+
+
+def months_ago(months) -> str:
+    """
+    Date cutoff for filtering timestamps, on the same midnight basis as MySQL CURDATE().
+    Inputs:
+        months: how many months back to go
+    Outputs:
+        Date text, 'YYYY-MM-DD'
+    """
+    return pendulum.now(APP_TZ).subtract(months=months).to_date_string()
+
+
+def fmt_date(value) -> str:
+    """
+    Format a stored timestamp for display; SQLite returns them as text.
+    Inputs:
+        value: timestamp text as stored, or None
+    Outputs:
+        Date as MM/DD/YYYY, or "" when there is no value
+    """
+    if not value:
+        return ""
+    return pendulum.parse(value).format("MM/DD/YYYY")
+
+
+class Database:
     def __init__(self):
-        self.config = {
-            "user": "root",
-            "password": os.environ["MYSQL_PASSWORD"],
-            "host": "mysql",
-            "database": "fitness",
-        }
+        self.path = settings.db_path()
+        self.lock = threading.Lock()
         self.connect()
+        self.bootstrap()
 
     def connect(self):
-        try:
-            self.connection = connector.connect(**self.config)
-        except connector.Error as e:
-            print("Error while connecting to MySQL", e)
-            raise
+        # Sessions share one cached connection on separate threads; self.lock guards it.
+        self.connection = sqlite3.connect(str(self.path), check_same_thread=False)
+
+        self.connection.execute("PRAGMA journal_mode = WAL")
+        # Off by default, so the meso_drafts cascade needs it set per connection.
+        self.connection.execute("PRAGMA foreign_keys = ON")
+        self.connection.execute("PRAGMA busy_timeout = 5000")
+        # Under WAL this drops the per-commit fsync; a power cut loses recent commits.
+        self.connection.execute("PRAGMA synchronous = NORMAL")
+
+    def bootstrap(self):
+        """
+        Apply the schema, seeding only an empty database so renames are not undone.
+        Inputs:
+            None
+        Outputs:
+            None
+        """
+        here = pathlib.Path(__file__).parent
+
+        # No lock: nothing shares the connection yet.
+        self.connection.executescript((here / "schema.sql").read_text())
+        row_count = self.connection.execute("""
+            SELECT (SELECT COUNT(*) FROM users) + (SELECT COUNT(*) FROM exercises)
+            """).fetchone()[0]
+        if row_count == 0:
+            self.connection.executescript((here / "seed.sql").read_text())
 
     def execute_query(
         self,
         query: str,
         params: tuple | None = None,
     ) -> list:
-        # The cached connection can go stale (MySQL wait_timeout); reconnect if so.
-        self.connection.ping(reconnect=True, attempts=3, delay=1)
-        cursor = self.connection.cursor()
-        try:
-            cursor.execute(query, params if params else ())
-            if query.strip().upper().startswith("SELECT"):
-                return cursor.fetchall()
-            self.connection.commit()
-            return []
-        finally:
-            cursor.close()
+        """
+        Run one statement against the shared connection.
+        Inputs:
+            query: SQL using ? placeholders
+            params: values to bind, or None
+        Outputs:
+            Rows for a SELECT, otherwise an empty list
+        """
+        # One critical section: every session shares this connection.
+        with self.lock:
+            cursor = self.connection.cursor()
+            try:
+                cursor.execute(query, params if params else ())
+                if query.strip().upper().startswith("SELECT"):
+                    return cursor.fetchall()
+                self.connection.commit()
+                return []
+            finally:
+                cursor.close()
+
+    @contextlib.contextmanager
+    def transaction(self):
+        """
+        Run several statements as one unit, committing once at the end.
+        Inputs:
+            None
+        Outputs:
+            Cursor to run the statements on; execute_query would deadlock here
+        """
+        with self.lock:
+            cursor = self.connection.cursor()
+            try:
+                yield cursor
+                self.connection.commit()
+            except Exception:
+                self.connection.rollback()
+                raise
+            finally:
+                cursor.close()
 
     def insert_set(
         self,
@@ -77,19 +165,19 @@ class MySQLDatabase:
                 )
                 VALUES
                 (
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    NOW()
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
                 )
                 """
 
@@ -108,6 +196,7 @@ class MySQLDatabase:
                 exercise_id,
                 day_id,
                 week_id,
+                now_str(),
             ),
         )
 
@@ -120,20 +209,18 @@ class MySQLDatabase:
                 , past_mesos
                 , months
             FROM users
-            WHERE name = %s
+            WHERE name = ?
             """,
             (name,),
         )
         return sql[0]
 
     def get_muscle_groups(self):
-        sql = self.execute_query(
-            """
+        sql = self.execute_query("""
             SELECT DISTINCT muscle_group
             FROM exercises
             ORDER BY muscle_group
-            """
-        )
+            """)
         return [row[0] for row in sql]
 
     def get_exercises_by_group(self, muscle_group):
@@ -141,7 +228,7 @@ class MySQLDatabase:
             """
             SELECT name
             FROM exercises
-            WHERE muscle_group = %s
+            WHERE muscle_group = ?
             ORDER BY name
             """,
             (muscle_group,),
@@ -153,7 +240,7 @@ class MySQLDatabase:
             """
             SELECT id
             FROM exercises
-            WHERE name = %s
+            WHERE name = ?
             """,
             (name,),
         )
@@ -164,7 +251,7 @@ class MySQLDatabase:
             """
             SELECT muscle_group
             FROM exercises
-            WHERE id = %s
+            WHERE id = ?
             """,
             (exercise_id,),
         )
@@ -175,8 +262,8 @@ class MySQLDatabase:
             """
             SELECT meso_id
             FROM mesos
-            WHERE name = %s
-                AND user_id = %s
+            WHERE name = ?
+                AND user_id = ?
             """,
             (name, user_id),
         )
@@ -188,7 +275,7 @@ class MySQLDatabase:
             SELECT DISTINCT name
                 , meso_id
             FROM mesos
-            WHERE user_id = %s
+            WHERE user_id = ?
             ORDER BY meso_id DESC
             """,
             (user_id,),
@@ -204,13 +291,13 @@ class MySQLDatabase:
                 , e.name
             FROM mesos m
             INNER JOIN exercises e ON m.exercise_id = e.id
-            WHERE meso_id = %s
-                AND user_id = %s
+            WHERE meso_id = ?
+                AND user_id = ?
                 AND week_id = (
                     SELECT MAX(week_id) - 1
                     FROM mesos
-                    WHERE meso_id = %s
-                        AND user_id = %s
+                    WHERE meso_id = ?
+                        AND user_id = ?
                 )
             GROUP BY day_id
                 , order_id
@@ -233,7 +320,7 @@ class MySQLDatabase:
             """
             SELECT draft
             FROM meso_drafts
-            WHERE user_id = %s
+            WHERE user_id = ?
             """,
             (user_id,),
         )
@@ -245,12 +332,12 @@ class MySQLDatabase:
         self.execute_query(
             """
             INSERT INTO meso_drafts (user_id, draft, updated_at)
-            VALUES (%s, %s, NOW())
-            ON DUPLICATE KEY UPDATE
-                draft = %s
-                , updated_at = NOW()
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                draft = excluded.draft
+                , updated_at = excluded.updated_at
             """,
-            (user_id, json.dumps(draft), json.dumps(draft)),
+            (user_id, json.dumps(draft), now_str()),
         )
 
     def delete_meso_draft(self, user_id):
@@ -258,7 +345,7 @@ class MySQLDatabase:
             """
             DELETE
             FROM meso_drafts
-            WHERE user_id = %s
+            WHERE user_id = ?
             """,
             (user_id,),
         )

@@ -1,3 +1,4 @@
+from helpers import settings
 from helpers.connection import get_db
 from helpers.login import login
 import streamlit as st
@@ -44,8 +45,8 @@ if st.session_state["authentication_status"]:
         if st.form_submit_button() and change:
             query = """
                     UPDATE users
-                    SET keep_score = %s
-                    WHERE id = %s
+                    SET keep_score = ?
+                    WHERE id = ?
                     """
             conn.execute_query(query, (reverse_mapping[change], user_id))
             st.success("Updated scoring")
@@ -68,14 +69,14 @@ if st.session_state["authentication_status"]:
         if st.form_submit_button():
             query = """
                     UPDATE users
-                    SET past_mesos = %s
-                    WHERE id = %s
+                    SET past_mesos = ?
+                    WHERE id = ?
                     """
             conn.execute_query(query, (new, user_id))
             query = """
                     UPDATE users
-                    SET months = %s
-                    WHERE id = %s
+                    SET months = ?
+                    WHERE id = ?
                     """
             conn.execute_query(query, (new_months, user_id))
             st.success("Updated view for past programs")
@@ -86,7 +87,7 @@ if st.session_state["authentication_status"]:
             st.success("Password modified successfully")
 
             config = st.session_state["config"]
-            with open(".streamlit/config.yml", "w") as file:
+            with open(settings.config_path(), "w") as file:
                 yaml.dump(config, file, default_flow_style=False)
 
     except Exception as e:
@@ -105,8 +106,8 @@ if "admin" in st.session_state["roles"]:
             change_to = st.text_input("Change To", value=change_name).lower().strip()
             update_query = """
                         UPDATE exercises
-                        SET name = %s
-                        WHERE name = %s
+                        SET name = ?
+                        WHERE name = ?
                         """
             if st.button("Change Name"):
                 conn.execute_query(update_query, params=(change_to, change_name))
@@ -118,7 +119,7 @@ if "admin" in st.session_state["roles"]:
         if authenticator:
             email, register_user, register_name = authenticator.register_user()
             config = st.session_state["config"]
-            with open(".streamlit/config.yml", "w") as file:
+            with open(settings.config_path(), "w") as file:
                 yaml.dump(config, file, default_flow_style=False)
 
     except Exception as e:
@@ -136,7 +137,7 @@ if "admin" in st.session_state["roles"]:
         if register_user not in names:
             query = """
                     INSERT INTO users (name)
-                    VALUES (%s)
+                    VALUES (?)
                     """
             conn.execute_query(query, (register_user,))
 
