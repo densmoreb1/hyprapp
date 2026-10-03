@@ -134,7 +134,6 @@ def enter_score(
 
     if pump and soreness and effort:
         add_set = add_or_not(mapping[pump], mapping[soreness], mapping[effort])
-        st.write(add_set)
 
         if st.button("Enter"):
             if add_set:
