@@ -46,10 +46,17 @@ if len(muscle_group) != 0:
     limited_mesos_query = """
         SELECT DISTINCT meso_id
         FROM mesos
+        WHERE user_id = ?
         ORDER BY meso_id DESC
         LIMIT ?
         """
-    limited_mesos = conn.execute_query(limited_mesos_query, (past_mesos_count,))
+    limited_mesos = conn.execute_query(
+        limited_mesos_query,
+        (
+            user_id,
+            past_mesos_count,
+        ),
+    )
 
     meso_ids = [x[0] for x in limited_mesos]
     placeholders = ", ".join(["?"] * len(meso_ids))
