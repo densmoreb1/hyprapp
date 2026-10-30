@@ -79,8 +79,8 @@ saved program draft behind.
 ## Scoring
 
 There is a user setting called Scoring. After the last set of each muscle group,
-it asks how pumped the muscle got, how sore it got from the last workout,
-and how much effort it took.
+it asks how pumped the muscle got and how much effort it took, saved on today's
+sets, and how sore it got from the last workout, saved on that last workout's sets.
 
-Based on the feedback, it will either add a set to next week's exercise or
-keep it the same.
+Once the last workout has all three scores, it decides whether to add a set to
+that workout's day in the weeks still to come or keep it the same.

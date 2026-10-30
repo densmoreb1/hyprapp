@@ -29,6 +29,10 @@ CREATE TABLE IF NOT EXISTS mesos (
     week_id int,
     -- 'real' not 'numeric': numeric affinity would store 180.0 as 180.
     weight real,
+    -- Scores 1-4; soreness is entered the next time the group is trained.
+    pump int,
+    effort int,
+    soreness int,
     date_created text,
     date_completed text,
     UNIQUE (meso_id, name, user_id, exercise_id, day_id, week_id, set_id)

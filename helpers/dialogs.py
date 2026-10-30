@@ -114,13 +114,17 @@ def enter_score(
     day_id,
     week_id,
     max_week_id,
+    muscle_group,
     group_exercises,
 ):
 
     st.write("Enter scores")
 
+    # Soreness completes the score of the last session of this group.
+    last = conn.get_last_group_session(user_id, meso_id, muscle_group, week_id, day_id)
+
     mapping = {"None": 1, "Low": 2, "Medium": 3, "High": 4}
-    if week_id != 0:
+    if last:
         soreness = st.segmented_control(
             "Soreness (from last workout)",
             options=mapping.keys(),
@@ -133,50 +137,157 @@ def enter_score(
     effort = st.segmented_control("Effort", options=mapping.keys(), key="effort")
 
     if pump and soreness and effort:
-        add_set = add_or_not(mapping[pump], mapping[soreness], mapping[effort])
-
         if st.button("Enter"):
-            if add_set:
-                chosen = random.choice(group_exercises)
-                exercise_id = chosen["exercise_id"]
-                order_id = chosen["order_id"]
+            exercise_ids = [e["exercise_id"] for e in group_exercises]
+            placeholders = ", ".join("?" * len(exercise_ids))
 
-                max_set = conn.execute_query(
-                    """
-                    SELECT MAX(set_id)
-                    FROM mesos
+            with conn.transaction() as cursor:
+                cursor.execute(
+                    f"""
+                    UPDATE mesos
+                    SET pump = ?
+                        , effort = ?
                     WHERE meso_id = ?
                         AND user_id = ?
-                        AND day_id = ?
                         AND week_id = ?
-                        AND exercise_id = ?
+                        AND day_id = ?
+                        AND exercise_id IN ({placeholders})
                     """,
                     (
+                        mapping[pump],
+                        mapping[effort],
                         meso_id,
                         user_id,
-                        day_id,
                         week_id,
-                        exercise_id,
+                        day_id,
+                        *exercise_ids,
                     ),
-                )[0][0]
-                set_id = (max_set + 1) if max_set is not None else 0
-
-                for i in range(week_id + 1, max_week_id + 1):
-                    conn.insert_set(
-                        meso_id=meso_id,
-                        meso_name=meso_name,
-                        user_id=user_id,
-                        completed=0,
-                        completed_day=0,
-                        set_id=set_id,
-                        reps=None,
-                        weight=None,
-                        order_id=order_id,
-                        exercise_id=exercise_id,
-                        day_id=day_id,
-                        week_id=i,
+                )
+                if last:
+                    cursor.execute(
+                        """
+                        UPDATE mesos
+                        SET soreness = ?
+                        WHERE meso_id = ?
+                            AND user_id = ?
+                            AND week_id = ?
+                            AND day_id = ?
+                            AND exercise_id IN (
+                                SELECT id
+                                FROM exercises
+                                WHERE muscle_group = ?
+                            )
+                        """,
+                        (
+                            mapping[soreness],
+                            meso_id,
+                            user_id,
+                            last[0],
+                            last[1],
+                            muscle_group,
+                        ),
                     )
+
+            # Sessions scored before pump/effort were stored can't be judged.
+            if (
+                last
+                and last[2] is not None
+                and last[3] is not None
+                and add_or_not(last[2], mapping[soreness], last[3])
+            ):
+                add_score_set(
+                    conn,
+                    meso_id,
+                    meso_name,
+                    user_id,
+                    day_id,
+                    week_id,
+                    max_week_id,
+                    muscle_group,
+                    last,
+                )
             st.rerun()
+
+
+def add_score_set(
+    conn,
+    meso_id,
+    meso_name,
+    user_id,
+    day_id,
+    week_id,
+    max_week_id,
+    muscle_group,
+    last,
+):
+    """
+    Add a set to the last session's day slot in every workout still to come.
+    Inputs:
+        conn: database
+        meso_id: current meso
+        meso_name: current meso name
+        user_id: current user
+        day_id: day of the current workout
+        week_id: week of the current workout
+        max_week_id: last week of the meso
+        muscle_group: group being scored
+        last: (week_id, day_id, pump, effort) of the last session of the group
+    Outputs:
+        None
+    """
+    last_week_id, last_day_id = last[0], last[1]
+
+    query = """
+            SELECT DISTINCT m.exercise_id
+                , m.order_id
+            FROM mesos m
+            INNER JOIN exercises e ON m.exercise_id = e.id
+            WHERE m.meso_id = ?
+                AND m.user_id = ?
+                AND m.week_id = ?
+                AND m.day_id = ?
+                AND e.muscle_group = ?
+            """
+    sql = conn.execute_query(
+        query, (meso_id, user_id, last_week_id, last_day_id, muscle_group)
+    )
+    exercise_id, order_id = random.choice(sql)
+
+    for i in range(last_week_id + 1, max_week_id + 1):
+        # Never touch the workout in progress or ones already done.
+        if (i, last_day_id) <= (week_id, day_id):
+            continue
+
+        max_set = conn.execute_query(
+            """
+            SELECT MAX(set_id)
+            FROM mesos
+            WHERE meso_id = ?
+                AND user_id = ?
+                AND day_id = ?
+                AND week_id = ?
+                AND exercise_id = ?
+            """,
+            (meso_id, user_id, last_day_id, i, exercise_id),
+        )[0][0]
+        # The exercise may have been replaced in a later week.
+        if max_set is None:
+            continue
+
+        conn.insert_set(
+            meso_id=meso_id,
+            meso_name=meso_name,
+            user_id=user_id,
+            completed=0,
+            completed_day=0,
+            set_id=max_set + 1,
+            reps=None,
+            weight=None,
+            order_id=order_id,
+            exercise_id=exercise_id,
+            day_id=last_day_id,
+            week_id=i,
+        )
 
 
 @st.dialog("Records")

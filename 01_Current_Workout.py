@@ -308,6 +308,7 @@ for i in range(len(exercises)):
                         day_id,
                         week_id,
                         max_week_id,
+                        exercise_group,
                         group_exercises[exercise_group],
                     )
                 else:

@@ -80,6 +80,13 @@ class Database:
 
         # No lock: nothing shares the connection yet.
         self.connection.executescript((here / "schema.sql").read_text())
+        # CREATE TABLE IF NOT EXISTS skips existing tables, so add newer columns here.
+        columns = {
+            row[1] for row in self.connection.execute("PRAGMA table_info(mesos)")
+        }
+        for column in ("pump", "effort", "soreness"):
+            if column not in columns:
+                self.connection.execute(f"ALTER TABLE mesos ADD COLUMN {column} int")
         row_count = self.connection.execute("""
             SELECT (SELECT COUNT(*) FROM users) + (SELECT COUNT(*) FROM exercises)
             """).fetchone()[0]
@@ -268,6 +275,46 @@ class Database:
             (name, user_id),
         )
         return sql[0][0] if sql else None
+
+    def get_last_group_session(self, user_id, meso_id, muscle_group, week_id, day_id):
+        """
+        Most recent completed session of a muscle group before the given workout.
+        Inputs:
+            user_id: user to search
+            meso_id: meso to search within
+            muscle_group: group to match
+            week_id: week of the current workout
+            day_id: day of the current workout
+        Outputs:
+            (week_id, day_id, pump, effort), or None when the group has no prior session
+        """
+        sql = self.execute_query(
+            """
+            SELECT m.week_id
+                , m.day_id
+                , MAX(m.pump)
+                , MAX(m.effort)
+            FROM mesos m
+            INNER JOIN exercises e ON m.exercise_id = e.id
+            WHERE m.user_id = ?
+                AND m.meso_id = ?
+                AND e.muscle_group = ?
+                AND m.completed = 1
+                AND (
+                    m.week_id < ?
+                    OR (
+                        m.week_id = ?
+                        AND m.day_id < ?
+                        )
+                    )
+            GROUP BY m.week_id
+                , m.day_id
+            ORDER BY m.week_id DESC
+                , m.day_id DESC limit 1
+            """,
+            (user_id, meso_id, muscle_group, week_id, week_id, day_id),
+        )
+        return sql[0] if sql else None
 
     def get_meso_names(self, user_id):
         sql = self.execute_query(

@@ -6,3 +6,4 @@ state/
 backup.sql
 *.sql.gz
 result
+.direnv/
