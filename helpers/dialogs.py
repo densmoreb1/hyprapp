@@ -294,16 +294,14 @@ def add_score_set(
 def records(conn, user_id, exercise_id, exercise_name):
     # most volume in one set
     query = """
-            SELECT MAX(weight)
-                , MAX(reps)
+            SELECT weight
+                , reps
                 , date_completed
             FROM mesos
             WHERE user_id = ?
                 AND completed = 1
                 AND exercise_id = ?
-            GROUP BY date_completed
-                , exercise_id
-            ORDER BY MAX(weight) * MAX(reps) DESC limit 1
+            ORDER BY weight * reps DESC limit 1
             """
     sql = conn.execute_query(query, (user_id, exercise_id))
     if len(sql) == 0:

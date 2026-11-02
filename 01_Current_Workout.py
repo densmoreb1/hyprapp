@@ -204,7 +204,7 @@ for i in range(len(exercises)):
         if len(previous) > 0:
             # if set exists
             if i < len(previous) and previous[i][1] is not None:
-                prev_reps = previous[i][1] + 1
+                prev_reps = previous[i][1] + 1  # add here to be written later
                 prev_weight = float(previous[i][2])
 
         max_set_count += 1

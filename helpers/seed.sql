@@ -32,5 +32,5 @@ INSERT OR IGNORE INTO exercises (name, muscle_group) VALUES
 ('dumbbell lateral raise', 'shoulders'),
 ('back raise', 'hamstrings'),
 ('barbell squat', 'quads'),
-('walking lunges', 'quads'),
+('lunge', 'quads'),
 ('sissy squat', 'quads');
